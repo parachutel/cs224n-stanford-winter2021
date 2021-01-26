@@ -1,0 +1,13 @@
+# Jupyter Notebook
+.ipynb_checkpoints
+
+# macOS
+.DS_Store
+__MACOSX/
+
+__pycache__/
+*.npy
+*.pickle
+*.zip
+datasets/
+dataset/
