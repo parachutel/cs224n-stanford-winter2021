@@ -73,7 +73,7 @@ class ParserModel(nn.Module):
         ### 
         ### See the PDF for hints.
 
-        
+
 
 
         ### END YOUR CODE
