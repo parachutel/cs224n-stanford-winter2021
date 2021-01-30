@@ -9,6 +9,7 @@ __pycache__/
 *.npy
 *.pickle
 *.zip
+*.docx
 datasets/
 dataset/
 results/
