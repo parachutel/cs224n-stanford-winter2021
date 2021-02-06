@@ -14,3 +14,5 @@ datasets/
 dataset/
 results/
 *.Identifier
+*.bin
+*.optim
