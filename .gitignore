@@ -10,8 +10,6 @@ __pycache__/
 *.pickle
 *.zip
 *.docx
-*.vocab
-*.model
 datasets/
 dataset/
 results/
