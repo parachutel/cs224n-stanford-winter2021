@@ -256,9 +256,9 @@ class NMT(nn.Module):
 
 
         enc_hiddens_proj = self.att_projection(enc_hiddens) # (b, src_len, h)
-        tgt_embs = self.model_embeddings.target(target_padded) # (tgt_len, b, e)
+        tgt_embs = self.model_embeddings.target(target_padded) # (tgt_len, b, e), Y
         for y_t in torch.split(tgt_embs, 1, dim=0):
-            # y_t.shape = (1, b, e), y_t
+            # y_t.shape = (1, b, e)
             Ybar_t = torch.cat([y_t.squeeze(0), o_prev], dim=-1) # ((b, e + h)
             dec_state, o_prev, _ = self.step(Ybar_t, dec_state, enc_hiddens, enc_hiddens_proj, enc_masks)
             # o_prev.shape = (b, h)
