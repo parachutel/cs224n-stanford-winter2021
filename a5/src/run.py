@@ -55,7 +55,8 @@ Don't change above here; write your code below
 """
 
 if args.variant == 'vanilla':
-    pass # TODO [part c]: Make some model here
+    # TODO [part c]: Make some model here
+    gpt_model = model.GPT(mconf)
 elif args.variant == 'synthesizer':
     pass # TODO [part g]: Make some other model here
 
@@ -112,7 +113,29 @@ elif args.function == 'finetune':
     #         warmup_tokens=512*20
     #         final_tokens=200*len(pretrain_dataset)*block_size
     #         num_workers=4
-    raise NotImplementedError
+    
+    if args.reading_params_path is None:
+        # [part c]
+        # Finetuning without a pretrained model
+        tconf = trainer.TrainerConfig(
+            max_epochs=75, 
+            batch_size=256, 
+            learning_rate=6e-4,
+            lr_decay=True, 
+            warmup_tokens=512*20, 
+            final_tokens=200*len(pretrain_dataset)*block_size,
+            num_workers=4)
+        finetune_text = open(args.finetune_corpus_path).read()
+        train_dataset = dataset.NameDataset(pretrain_dataset, finetune_text)
+        gpt_trainer = trainer.Trainer(gpt_model, train_dataset, None, tconf)
+        gpt_trainer.train()
+        torch.save(gpt_model.state_dict(), args.writing_params_path)
+    else:
+        # Finetuning with a pretrained model
+        pass
+
+
+
 elif args.function == 'evaluate':
     assert args.outputs_path is not None
     assert args.reading_params_path is not None
