@@ -129,7 +129,7 @@ elif args.function == 'finetune':
         finetune_dataset = dataset.NameDataset(pretrain_dataset, finetune_text)
         gpt_trainer = trainer.Trainer(gpt_model, finetune_dataset, None, tconf)
         gpt_trainer.train()
-        torch.save(gpt_model, args.writing_params_path)
+        torch.save(gpt_model.state_dict(), args.writing_params_path)
     else:
         # Finetuning with a pretrained model
         pass
@@ -141,6 +141,7 @@ elif args.function == 'evaluate':
     assert args.reading_params_path is not None
     assert args.eval_corpus_path is not None
     gpt_model.load_state_dict(torch.load(args.reading_params_path))
+    gpt_model = gpt_model.to(device)
     gpt_model.eval()
     correct = 0
     total = 0
