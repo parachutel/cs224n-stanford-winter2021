@@ -4,7 +4,7 @@
 # Your solution here should only be a few lines.
 import utils
 import argparse
-import tqdm
+from tqdm import tqdm
 
 argp = argparse.ArgumentParser()
 argp.add_argument('--eval_corpus_path',
