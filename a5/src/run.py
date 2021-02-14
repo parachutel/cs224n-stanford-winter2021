@@ -116,7 +116,7 @@ elif args.function == 'finetune':
     
     if args.reading_params_path is None:
         # [part c]
-        # Finetuning without a pretrained model
+        # Finetuning WITHOUT a pretrained model
         tconf = trainer.TrainerConfig(
             max_epochs=75, 
             batch_size=256, 
@@ -126,8 +126,8 @@ elif args.function == 'finetune':
             final_tokens=200*len(pretrain_dataset)*block_size,
             num_workers=4)
         finetune_text = open(args.finetune_corpus_path).read()
-        train_dataset = dataset.NameDataset(pretrain_dataset, finetune_text)
-        gpt_trainer = trainer.Trainer(gpt_model, train_dataset, None, tconf)
+        finetune_dataset = dataset.NameDataset(pretrain_dataset, finetune_text)
+        gpt_trainer = trainer.Trainer(gpt_model, finetune_dataset, None, tconf)
         gpt_trainer.train()
         torch.save(gpt_model.state_dict(), args.writing_params_path)
     else:
@@ -140,7 +140,7 @@ elif args.function == 'evaluate':
     assert args.outputs_path is not None
     assert args.reading_params_path is not None
     assert args.eval_corpus_path is not None
-    model.load_state_dict(torch.load(args.reading_params_path))
+    gpt_model.load_state_dict(torch.load(args.reading_params_path))
     correct = 0
     total = 0
     with open(args.outputs_path, 'w') as fout:
@@ -149,7 +149,7 @@ elif args.function == 'evaluate':
             x = line.split('\t')[0]
             x = x + '⁇'
             x = torch.tensor([pretrain_dataset.stoi[s] for s in x], dtype=torch.long)[None,...].to(device)
-            pred = utils.sample(model, x, 32, sample=False)[0]
+            pred = utils.sample(gpt_model, x, 32, sample=False)[0]
             completion = ''.join([pretrain_dataset.itos[int(i)] for i in pred])
             pred = completion.split('⁇')[1]
             predictions.append(pred)
