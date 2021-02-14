@@ -16,3 +16,5 @@ results/
 *.Identifier
 *.bin
 *.optim
+*.params
+*.predictions
