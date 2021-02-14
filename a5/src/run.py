@@ -129,7 +129,7 @@ elif args.function == 'finetune':
         finetune_dataset = dataset.NameDataset(pretrain_dataset, finetune_text)
         gpt_trainer = trainer.Trainer(gpt_model, finetune_dataset, None, tconf)
         gpt_trainer.train()
-        torch.save(gpt_model.state_dict(), args.writing_params_path)
+        torch.save(gpt_model, args.writing_params_path)
     else:
         # Finetuning with a pretrained model
         pass
