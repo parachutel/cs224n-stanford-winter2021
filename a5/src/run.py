@@ -58,7 +58,9 @@ if args.variant == 'vanilla':
     # TODO [part c]: Make some model here
     gpt_model = model.GPT(mconf)
 elif args.variant == 'synthesizer':
-    pass # TODO [part g]: Make some other model here
+    # TODO [part g]: Make some other model here
+    mconf.synthesizer = True
+    gpt_model = model.GPT(mconf)
 
 # From here on, your code should be identical independent of which
 # variant (vanilla or synthesizer) has been chosen.
@@ -142,7 +144,7 @@ elif args.function == 'finetune':
         gpt_model.load_state_dict(torch.load(args.reading_params_path))
         gpt_model = gpt_model.to(device)
         tconf = trainer.TrainerConfig(
-            max_epochs=10, 
+            max_epochs=75, 
             batch_size=256, 
             learning_rate=6e-4,
             lr_decay=True, 
