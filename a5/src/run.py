@@ -144,7 +144,7 @@ elif args.function == 'finetune':
         gpt_model.load_state_dict(torch.load(args.reading_params_path))
         gpt_model = gpt_model.to(device)
         tconf = trainer.TrainerConfig(
-            max_epochs=75, 
+            max_epochs=10, 
             batch_size=256, 
             learning_rate=6e-4,
             lr_decay=True, 

@@ -199,9 +199,13 @@ class CharCorruptionDataset(Dataset):
         # - IMPORTANT: You are free to decide how to perform this operation, but
         # make sure that the length is picked _randomly_ (has a chance of being more or
         # less than 1/4 the length of the truncated document) for full credit.
-        mean_masked_content_len = len(truncated_document) / 4 # float
-        noise = random.uniform(-1/8, 1/8) * len(truncated_document) # float
-        masked_content_len = mean_masked_content_len + noise # add some randomness
+        # Uniform:
+        # mean_masked_content_len = len(truncated_document) / 4 # float
+        # noise = random.uniform(-1/8, 1/8) * len(truncated_document) # float
+        # masked_content_len = mean_masked_content_len + noise # add some randomness
+        # Gaussian:
+        masked_content_len = random.gauss(1/4, 0.05) * len(truncated_document) # float
+
         masked_content_len = int(np.clip(masked_content_len, 1, truncate_len - 2))
         start_idx = random.randint(1, truncate_len - masked_content_len - 1)
         prefix = truncated_document[:start_idx]
@@ -220,7 +224,7 @@ class CharCorruptionDataset(Dataset):
         #   replaced with MASK_CHAR (the masking character defined in Vocabulary
         #   Specification). After the suffix of the string, the MASK_CHAR is seen again,
         #   followed by the content that was removed, and the padding characters.
-        masked_string = prefix + self.MASK_CHAR + suffix + self.MASK_CHAR + masked_content + self.MASK_CHAR
+        masked_string = prefix + self.MASK_CHAR + suffix + self.MASK_CHAR + masked_content # + self.MASK_CHAR
         masked_string += self.PAD_CHAR * (self.block_size - len(masked_string))
         assert len(masked_string) == self.block_size
 
