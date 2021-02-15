@@ -166,7 +166,7 @@ elif args.function == 'evaluate':
     assert args.eval_corpus_path is not None
     gpt_model.load_state_dict(torch.load(args.reading_params_path))
     gpt_model = gpt_model.to(device)
-    gpt_model.eval()
+    # gpt_model.eval()
     correct = 0
     total = 0
     with open(args.outputs_path, 'w') as fout:
