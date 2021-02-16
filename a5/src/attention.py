@@ -63,7 +63,7 @@ class SynthesizerAttention(nn.Module):
         # NEW learnable weights
         self.w1 = nn.Linear(config.n_embd, config.n_embd)
         self.w2 = nn.Parameter(torch.zeros(config.n_embd // config.n_head,
-            config.block_size-1)) # (hs, T)
+            config.block_size-1))
         self.b2 = nn.Parameter(torch.zeros(config.block_size-1))
         # value projection
         self.value = nn.Linear(config.n_embd, config.n_embd)
@@ -89,13 +89,13 @@ class SynthesizerAttention(nn.Module):
         #   - Paste over the CausalSelfAttention above and modify it minimally.
         #   - Consider especially the parameters self.w1, self.w2 and self.b2.
         #       How do these map to the matrices in the handout?
-        B, T, C = x.size() # bs, block size, total embed dimension
+        B, T, C = x.size() # bs, seq len, total embed dimension
         
         att = self.w1(x).view(B, T, self.n_head, C // self.n_head).transpose(1, 2) # (B, nh, T, hs)
         att = F.relu(att) # (B, nh, T, hs)
-        w2 = self.w2.unsqueeze(0).unsqueeze(0) # (1, 1, hs, T)
+        w2 = self.w2.unsqueeze(0).unsqueeze(0)[..., :T] # (1, 1, hs, T)
         att = att @ w2 # (B, nh, T, hs) x (1, 1, hs, T) -> (B, nh, T, T)
-        att = att + self.b2 # (B, nh, T, T)
+        att = att + self.b2[..., :T] # (B, nh, T, T)
         att = att.masked_fill(self.mask[:,:,:T,:T] == 0, -1e10)
         att = F.softmax(att, dim=-1) # (B, nh, T, T)
         att = self.attn_drop(att) # (B, nh, T, T)
