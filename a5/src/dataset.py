@@ -184,8 +184,7 @@ class CharCorruptionDataset(Dataset):
         if truncate_len >= document_len:
             truncated_document = document
         else:
-            start_idx = random.randint(0, document_len - truncate_len)
-            truncated_document = document[start_idx : start_idx + truncate_len]
+            truncated_document = document[:truncate_len] # truncate from start
 
         # 2. Now, break the (truncated) document into three substrings:
     
@@ -200,11 +199,11 @@ class CharCorruptionDataset(Dataset):
         # make sure that the length is picked _randomly_ (has a chance of being more or
         # less than 1/4 the length of the truncated document) for full credit.
         # Uniform:
-        # mean_masked_content_len = len(truncated_document) / 4 # float
-        # noise = random.uniform(-1/8, 1/8) * len(truncated_document) # float
-        # masked_content_len = mean_masked_content_len + noise # add some randomness
+        mean_masked_content_len = len(truncated_document) / 4 # float
+        noise = random.uniform(-1/8, 1/8) * len(truncated_document) # float
+        masked_content_len = mean_masked_content_len + noise # add some randomness
         # Gaussian:
-        masked_content_len = random.gauss(1/4, 0.05) * len(truncated_document) # float
+        # masked_content_len = random.gauss(1/4, 0.05) * len(truncated_document) # float
 
         masked_content_len = int(np.clip(masked_content_len, 1, truncate_len - 2))
         start_idx = random.randint(1, truncate_len - masked_content_len - 1)
