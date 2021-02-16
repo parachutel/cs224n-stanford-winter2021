@@ -1,3 +1,6 @@
+# Editor
+.vscode
+
 # Jupyter Notebook
 .ipynb_checkpoints
 
@@ -16,3 +19,6 @@ results/
 *.Identifier
 *.bin
 *.optim
+
+# Documents
+final/
