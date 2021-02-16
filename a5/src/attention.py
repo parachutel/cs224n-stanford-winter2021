@@ -90,7 +90,7 @@ class SynthesizerAttention(nn.Module):
         #   - Consider especially the parameters self.w1, self.w2 and self.b2.
         #       How do these map to the matrices in the handout?
         B, T, C = x.size() # bs, block size, total embed dimension
-
+        
         att = self.w1(x).view(B, T, self.n_head, C // self.n_head).transpose(1, 2) # (B, nh, T, hs)
         att = F.relu(att) # (B, nh, T, hs)
         w2 = self.w2.unsqueeze(0).unsqueeze(0) # (1, 1, hs, T)
