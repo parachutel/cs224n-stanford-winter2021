@@ -164,6 +164,7 @@ elif args.function == 'evaluate':
     assert args.outputs_path is not None
     assert args.reading_params_path is not None
     assert args.eval_corpus_path is not None
+    # gpt_model.load_state_dict(torch.load(args.reading_params_path, map_location=torch.device('cpu')))
     gpt_model.load_state_dict(torch.load(args.reading_params_path))
     gpt_model = gpt_model.to(device)
     # gpt_model.eval()
