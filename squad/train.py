@@ -21,7 +21,7 @@ from models import BiDAF, QANet
 from tensorboardX import SummaryWriter
 from tqdm import tqdm
 from ujson import load as json_load
-from util import collate_fn, collate_fn_qanet, SQuAD, SQuADDataset_for_QANet
+from util import collate_fn, collate_fn_qanet, SQuAD
 
 import qanet_config
 
@@ -131,7 +131,7 @@ def main(args):
                     raise NotImplementedError
 
                 y1, y2 = y1.to(device), y2.to(device)
-                
+
                 loss = F.nll_loss(log_p1, y1) + F.nll_loss(log_p2, y2)
                 loss_val = loss.item()
 
