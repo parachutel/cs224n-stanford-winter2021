@@ -55,7 +55,7 @@ class SQuAD(data.Dataset):
 
         # print('SQuAD.__init__.self.context_char_idxs', self.context_char_idxs.shape)
 
-        if use_v2 and algo == 'baseline':
+        if use_v2:
             # SQuAD 2.0: Use index 0 for no-answer token (token 1 = OOV)
             self.y1s += 1
             self.y2s += 1
