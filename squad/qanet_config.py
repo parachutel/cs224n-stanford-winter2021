@@ -57,7 +57,7 @@ beta1 = 0.8 #Beta 1
 beta2 = 0.999 #Beta 2
 early_stop = 10 #Checkpoints for early stop
 d_model = 96 #Dimension of connectors of each layer
-num_heads = 8 #Number of heads in multi-head attention
+num_heads = 4 #Number of heads in multi-head attention
 
 # Extensions (Uncomment corresponding line in download.sh to download the required data)
 glove_char_file = os.path.join(home, "data", "glove", "glove.840B.300d-char.txt")
