@@ -31,7 +31,7 @@ from util import collate_fn, SQuAD
 
 def main(args):
     # Set up logging
-    args.save_dir = util.get_save_dir(args.save_dir, args.name, training=False)
+    args.save_dir = util.get_save_dir(args, training=False)
     log = util.get_logger(args.save_dir, args.name)
     log.info(f'Args: {dumps(vars(args), indent=4, sort_keys=True)}')
     device, gpu_ids = util.get_available_devices()

@@ -476,7 +476,7 @@ def save_preds(preds, save_dir, file_name='predictions.csv'):
     return save_path
 
 
-def get_save_dir(base_dir, name, training, id_max=100):
+def get_save_dir(args, training, id_max=100):
     """Get a unique save directory by appending the smallest positive integer
     `id < id_max` that is not already taken (i.e., no dir exists with that id).
 
@@ -489,6 +489,16 @@ def get_save_dir(base_dir, name, training, id_max=100):
     Returns:
         save_dir (str): Path to a new directory with a unique name.
     """
+    base_dir = args.save_dir
+    name = args.name
+    if name == 'qanet':
+        name = '_'.join([
+            'qanet',
+            'encblk={}'.format(args.n_encoder_blocks), 
+            'head={}'.format(args.n_head),
+            'bs={}'.format(args.batch_size),
+            'run',
+        ])
     for uid in range(1, id_max):
         subdir = 'train' if training else 'test'
         save_dir = os.path.join(base_dir, subdir, f'{name}-{uid:02d}')

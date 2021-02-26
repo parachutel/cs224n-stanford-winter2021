@@ -28,7 +28,7 @@ import qanet_config
 
 def main(args):
     # Set up logging and devices
-    args.save_dir = util.get_save_dir(args.save_dir, args.name, training=True)
+    args.save_dir = util.get_save_dir(args, training=True)
     log = util.get_logger(args.save_dir, args.name)
     tbx = SummaryWriter(args.save_dir)
     device, args.gpu_ids = util.get_available_devices()
@@ -56,7 +56,8 @@ def main(args):
     elif args.name == 'qanet':
         model = QANet(word_mat=word_vectors, 
                       char_mat=char_vectors,
-                      n_encoder_blocks=args.n_encoder_blocks)
+                      n_encoder_blocks=args.n_encoder_blocks,
+                      n_head=args.n_head)
     else:
         raise NotImplementedError
     model = nn.DataParallel(model, args.gpu_ids)

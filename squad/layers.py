@@ -229,14 +229,12 @@ class BiDAFOutput(nn.Module):
 #####################################################################################
 
 d_model = qanet_config.d_model
-n_head = qanet_config.num_heads
 d_word = qanet_config.glove_dim
 d_char = qanet_config.char_dim
 batch_size = qanet_config.batch_size
 dropout = qanet_config.dropout
 dropout_char = qanet_config.dropout_char
 
-d_k = d_model // n_head
 d_cq = d_model * 4
 len_c = qanet_config.para_limit + 1 # + 1 for not answerable class
 len_q = qanet_config.ques_limit + 1 # + 1 for not answerable class
@@ -304,7 +302,9 @@ class Highway(nn.Module):
 
 class SelfAttention(nn.Module):
     def __init__(self):
-        super().__init__()
+        super().__init__(n_head=4)
+        self.n_head = n_head
+        dk = d_model // n_head
         Wo = torch.empty(d_model, d_k * n_head)
         Wqs = [torch.empty(d_model, d_k) for _ in range(n_head)]
         Wks = [torch.empty(d_model, d_k) for _ in range(n_head)]
@@ -325,12 +325,12 @@ class SelfAttention(nn.Module):
         x = x.transpose(1, 2)
         hmask = mask.unsqueeze(1)
         vmask = mask.unsqueeze(2)
-        for i in range(n_head):
+        for i in range(self.n_head):
             WQs.append(torch.matmul(x, self.Wqs[i]))
             WKs.append(torch.matmul(x, self.Wks[i]))
             WVs.append(torch.matmul(x, self.Wvs[i]))
         heads = []
-        for i in range(n_head):
+        for i in range(self.n_head):
             out = torch.bmm(WQs[i], WKs[i].transpose(1, 2))
             out = torch.mul(out, sqrt_d_k_inv)
             # not sure... I think `dim` should be 2 since it weighted each column of `WVs[i]`
@@ -343,26 +343,27 @@ class SelfAttention(nn.Module):
         return out.transpose(1, 2)
 
 class MultiHeadAttention(nn.Module):
-    def __init__(self):
+    def __init__(self, n_head=4):
         super().__init__()
-        
+        self.n_head = n_head
+        self.d_k = d_model // n_head
         self.q_linear = nn.Linear(d_model, d_model)
         self.v_linear = nn.Linear(d_model, d_model)
         self.k_linear = nn.Linear(d_model, d_model)
         self.dropout = nn.Dropout(dropout)
         self.fc = nn.Linear(d_model, d_model)
-        self.a = 1 / math.sqrt(d_k)
+        self.a = 1 / math.sqrt(self.d_k)
 
     def forward(self, x, mask):
         bs, _, l_x = x.size()
         x = x.transpose(1,2)
-        k = self.k_linear(x).view(bs, l_x, n_head, d_k)
-        q = self.q_linear(x).view(bs, l_x, n_head, d_k)
-        v = self.v_linear(x).view(bs, l_x, n_head, d_k)
-        q = q.permute(2, 0, 1, 3).contiguous().view(bs*n_head, l_x, d_k)
-        k = k.permute(2, 0, 1, 3).contiguous().view(bs*n_head, l_x, d_k)
-        v = v.permute(2, 0, 1, 3).contiguous().view(bs*n_head, l_x, d_k)
-        mask = mask.unsqueeze(1).expand(-1, l_x, -1).repeat(n_head, 1, 1)
+        k = self.k_linear(x).view(bs, l_x, self.n_head, self.d_k)
+        q = self.q_linear(x).view(bs, l_x, self.n_head, self.d_k)
+        v = self.v_linear(x).view(bs, l_x, self.n_head, self.d_k)
+        q = q.permute(2, 0, 1, 3).contiguous().view(bs*self.n_head, l_x, self.d_k)
+        k = k.permute(2, 0, 1, 3).contiguous().view(bs*self.n_head, l_x, self.d_k)
+        v = v.permute(2, 0, 1, 3).contiguous().view(bs*self.n_head, l_x, self.d_k)
+        mask = mask.unsqueeze(1).expand(-1, l_x, -1).repeat(self.n_head, 1, 1)
         
         attn = torch.bmm(q, k.transpose(1, 2)) * self.a
         attn = mask_logits(attn, mask)
@@ -370,7 +371,7 @@ class MultiHeadAttention(nn.Module):
         attn = self.dropout(attn)
             
         out = torch.bmm(attn, v)
-        out = out.view(n_head, bs, l_x, d_k).permute(1,2,0,3).contiguous().view(bs, l_x, d_model)
+        out = out.view(self.n_head, bs, l_x, self.d_k).permute(1,2,0,3).contiguous().view(bs, l_x, d_model)
         out = self.fc(out)
         out = self.dropout(out)
         return out.transpose(1,2)
@@ -396,10 +397,10 @@ class QANetEmbedding(nn.Module):
 
 
 class EncoderBlock(nn.Module):
-    def __init__(self, conv_num: int, ch_num: int, k: int, length: int):
+    def __init__(self, conv_num: int, ch_num: int, k: int, length: int, n_head=4):
         super().__init__()
         self.convs = nn.ModuleList([DepthwiseSeparableConv(ch_num, ch_num, k) for _ in range(conv_num)])
-        self.self_att = MultiHeadAttention()
+        self.self_att = MultiHeadAttention(n_head)
         self.fc = nn.Linear(ch_num, ch_num, bias=True)
         self.pos = PosEncoder(length)
         # self.norm = nn.LayerNorm([d_model, length])

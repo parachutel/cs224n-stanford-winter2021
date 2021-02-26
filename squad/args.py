@@ -113,10 +113,19 @@ def get_train_args():
                         type=float,
                         default=0.2,
                         help='Probability of zeroing an activation in dropout layers.')
+    #########################################################################################
+    # QANet parameters ######################################################################
+    #########################################################################################
     parser.add_argument('--n_encoder_blocks',
                         type=int,
                         default=7,
                         help='Number of layers of encoder blocks in QANet.')
+    parser.add_argument('--n_head',
+                        type=int,
+                        default=4,
+                        help='Number of attention heads in QANet.')
+    #########################################################################################
+    #########################################################################################
     parser.add_argument('--metric_name',
                         type=str,
                         default='F1',

@@ -74,18 +74,18 @@ class BiDAF(nn.Module):
 
 
 class QANet(nn.Module):
-    def __init__(self, word_mat, char_mat, n_encoder_blocks=7):
+    def __init__(self, word_mat, char_mat, n_encoder_blocks=7, n_head=4):
         super().__init__()
         self.char_emb = nn.Embedding.from_pretrained(torch.Tensor(char_mat), freeze=qanet_config.pretrained_char)
         self.word_emb = nn.Embedding.from_pretrained(torch.Tensor(word_mat))
         self.emb = layers.QANetEmbedding()
         self.context_conv = layers.DepthwiseSeparableConv(layers.d_word + layers.d_char, layers.d_model, 5)
         self.question_conv = layers.DepthwiseSeparableConv(layers.d_word + layers.d_char, layers.d_model, 5)
-        self.c_emb_enc = layers.EncoderBlock(conv_num=4, ch_num=layers.d_model, k=7, length=layers.len_c)
-        self.q_emb_enc = layers.EncoderBlock(conv_num=4, ch_num=layers.d_model, k=7, length=layers.len_q)
+        self.c_emb_enc = layers.EncoderBlock(conv_num=4, ch_num=layers.d_model, k=7, length=layers.len_c, n_head=n_head)
+        self.q_emb_enc = layers.EncoderBlock(conv_num=4, ch_num=layers.d_model, k=7, length=layers.len_q, n_head=n_head)
         self.cq_att = layers.CQAttention()
         self.cq_resizer = layers.DepthwiseSeparableConv(layers.d_model * 4, layers.d_model, 5)
-        enc_blk = layers.EncoderBlock(conv_num=2, ch_num=layers.d_model, k=5, length=layers.len_c)
+        enc_blk = layers.EncoderBlock(conv_num=2, ch_num=layers.d_model, k=5, length=layers.len_c, n_head=n_head)
         self.model_enc_blks = nn.ModuleList([enc_blk] * n_encoder_blocks)
         self.out = layers.Pointer()
 
