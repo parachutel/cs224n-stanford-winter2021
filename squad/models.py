@@ -74,7 +74,7 @@ class BiDAF(nn.Module):
 
 
 class QANet(nn.Module):
-    def __init__(self, word_mat, char_mat):
+    def __init__(self, word_mat, char_mat, n_encoder_blocks=7):
         super().__init__()
         self.char_emb = nn.Embedding.from_pretrained(torch.Tensor(char_mat), freeze=qanet_config.pretrained_char)
         self.word_emb = nn.Embedding.from_pretrained(torch.Tensor(word_mat))
@@ -86,7 +86,7 @@ class QANet(nn.Module):
         self.cq_att = layers.CQAttention()
         self.cq_resizer = layers.DepthwiseSeparableConv(layers.d_model * 4, layers.d_model, 5)
         enc_blk = layers.EncoderBlock(conv_num=2, ch_num=layers.d_model, k=5, length=layers.len_c)
-        self.model_enc_blks = nn.ModuleList([enc_blk] * 7)
+        self.model_enc_blks = nn.ModuleList([enc_blk] * n_encoder_blocks)
         self.out = layers.Pointer()
 
     def forward(self, Cwid, Ccid, Qwid, Qcid):

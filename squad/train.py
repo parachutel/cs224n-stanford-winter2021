@@ -55,7 +55,8 @@ def main(args):
                       drop_prob=args.drop_prob)
     elif args.name == 'qanet':
         model = QANet(word_mat=word_vectors, 
-                      char_mat=char_vectors)
+                      char_mat=char_vectors,
+                      n_encoder_blocks=args.n_encoder_blocks)
     else:
         raise NotImplementedError
     model = nn.DataParallel(model, args.gpu_ids)
@@ -201,7 +202,13 @@ def evaluate(model, data_loader, device, eval_file, max_len, use_squad_v2):
             batch_size = cw_idxs.size(0)
 
             # Forward
-            log_p1, log_p2 = model(cw_idxs, qw_idxs)
+            if args.name == 'baseline':
+                log_p1, log_p2 = model(cw_idxs, qw_idxs)
+            elif args.name == 'qanet':
+                log_p1, log_p2 = model(cw_idxs, cc_idxs, qw_idxs, qc_idxs)
+            else:
+                raise NotImplementedError
+
             y1, y2 = y1.to(device), y2.to(device)
             loss = F.nll_loss(log_p1, y1) + F.nll_loss(log_p2, y2)
             nll_meter.update(loss.item(), batch_size)
