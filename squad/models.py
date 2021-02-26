@@ -102,10 +102,13 @@ class QANet(nn.Module):
         
         X = self.cq_att(Ce, Qe, cmask, qmask)
         M1 = self.cq_resizer(X)
-        for enc in self.model_enc_blks: M1 = enc(M1, cmask)
+        for enc in self.model_enc_blks: 
+            M1 = enc(M1, cmask)
         M2 = M1
-        for enc in self.model_enc_blks: M2 = enc(M2, cmask)
+        for enc in self.model_enc_blks: 
+            M2 = enc(M2, cmask)
         M3 = M2
-        for enc in self.model_enc_blks: M3 = enc(M3, cmask)
+        for enc in self.model_enc_blks: 
+            M3 = enc(M3, cmask)
         p1, p2 = self.out(M1, M2, M3, cmask)
         return p1, p2

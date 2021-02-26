@@ -238,12 +238,12 @@ dropout_char = qanet_config.dropout_char
 
 d_k = d_model // n_head
 d_cq = d_model * 4
-len_c = qanet_config.para_limit
-len_q = qanet_config.ques_limit
+len_c = qanet_config.para_limit + 1 # + 1 for not answerable class
+len_q = qanet_config.ques_limit + 1 # + 1 for not answerable class
 
 
 def mask_logits(target, mask):
-    return target * (1-mask) + mask * (-1e30)
+    return target * (1 - mask) + mask * (-1e30)
 
 
 class PosEncoder(nn.Module):

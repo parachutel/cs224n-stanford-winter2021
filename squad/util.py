@@ -60,15 +60,13 @@ class SQuAD(data.Dataset):
             self.y1s += 1
             self.y2s += 1
 
-            if  algo == 'baseline':
-                batch_size, c_len, w_len = self.context_char_idxs.size()
-                ones = torch.ones((batch_size, 1), dtype=torch.int64)
-                self.context_idxs = torch.cat((ones, self.context_idxs), dim=1)
-                self.question_idxs = torch.cat((ones, self.question_idxs), dim=1)
-
-                ones = torch.ones((batch_size, 1, w_len), dtype=torch.int64)
-                self.context_char_idxs = torch.cat((ones, self.context_char_idxs), dim=1)
-                self.question_char_idxs = torch.cat((ones, self.question_char_idxs), dim=1) 
+            batch_size, c_len, w_len = self.context_char_idxs.size()
+            ones = torch.ones((batch_size, 1), dtype=torch.int64)
+            self.context_idxs = torch.cat((ones, self.context_idxs), dim=1)
+            self.question_idxs = torch.cat((ones, self.question_idxs), dim=1)
+            ones = torch.ones((batch_size, 1, w_len), dtype=torch.int64)
+            self.context_char_idxs = torch.cat((ones, self.context_char_idxs), dim=1)
+            self.question_char_idxs = torch.cat((ones, self.question_char_idxs), dim=1) 
 
         # SQuAD 1.1: Ignore no-answer examples
         self.ids = torch.from_numpy(dataset['ids']).long()

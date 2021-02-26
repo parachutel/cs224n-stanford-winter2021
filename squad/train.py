@@ -132,6 +132,9 @@ def main(args):
 
                 y1, y2 = y1.to(device), y2.to(device)
 
+                # print('train', log_p1.shape, y1.shape)
+                # print('train', torch.argmax(log_p1, dim=-1), y1, torch.argmax(log_p2, dim=-1), y2)
+
                 loss = F.nll_loss(log_p1, y1) + F.nll_loss(log_p2, y2)
                 loss_val = loss.item()
 
