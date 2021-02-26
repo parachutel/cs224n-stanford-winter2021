@@ -32,6 +32,7 @@ class BiDAF(nn.Module):
     """
     def __init__(self, word_vectors, hidden_size, drop_prob=0.):
         super(BiDAF, self).__init__()
+        self.name = 'baseline'
         self.emb = layers.Embedding(word_vectors=word_vectors,
                                     hidden_size=hidden_size,
                                     drop_prob=drop_prob)
@@ -76,6 +77,7 @@ class BiDAF(nn.Module):
 class QANet(nn.Module):
     def __init__(self, word_mat, char_mat, n_encoder_blocks=7):
         super().__init__()
+        self.name = 'qanet'
         self.char_emb = nn.Embedding.from_pretrained(torch.Tensor(char_mat), freeze=qanet_config.pretrained_char)
         self.word_emb = nn.Embedding.from_pretrained(torch.Tensor(word_mat))
         self.emb = layers.QANetEmbedding()

@@ -202,9 +202,9 @@ def evaluate(model, data_loader, device, eval_file, max_len, use_squad_v2):
             batch_size = cw_idxs.size(0)
 
             # Forward
-            if args.name == 'baseline':
+            if model.name == 'baseline':
                 log_p1, log_p2 = model(cw_idxs, qw_idxs)
-            elif args.name == 'qanet':
+            elif model.name == 'qanet':
                 log_p1, log_p2 = model(cw_idxs, cc_idxs, qw_idxs, qc_idxs)
             else:
                 raise NotImplementedError
