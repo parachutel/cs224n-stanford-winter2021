@@ -3,5 +3,9 @@
 .vscode/
 __pycache__
 .texpadtmp/
-data/
+data/*
+!data/train-v2.0.json
+!data/dev-v2.0.json
+!data/test-v2.0.json
 save/
+
