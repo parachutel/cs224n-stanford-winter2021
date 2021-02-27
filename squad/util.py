@@ -57,16 +57,17 @@ class SQuAD(data.Dataset):
 
         if use_v2:
             # SQuAD 2.0: Use index 0 for no-answer token (token 1 = OOV)
+            # Pad one in the front, remove one at the end
             self.y1s += 1
             self.y2s += 1
 
             batch_size, c_len, w_len = self.context_char_idxs.size()
             ones = torch.ones((batch_size, 1), dtype=torch.int64)
-            self.context_idxs = torch.cat((ones, self.context_idxs), dim=1)
-            self.question_idxs = torch.cat((ones, self.question_idxs), dim=1)
+            self.context_idxs = torch.cat((ones, self.context_idxs[:, :-1]), dim=1)
+            self.question_idxs = torch.cat((ones, self.question_idxs[:, :-1]), dim=1)
             ones = torch.ones((batch_size, 1, w_len), dtype=torch.int64)
-            self.context_char_idxs = torch.cat((ones, self.context_char_idxs), dim=1)
-            self.question_char_idxs = torch.cat((ones, self.question_char_idxs), dim=1) 
+            self.context_char_idxs = torch.cat((ones, self.context_char_idxs[:, :-1, :]), dim=1)
+            self.question_char_idxs = torch.cat((ones, self.question_char_idxs[:, :-1, :]), dim=1) 
 
         # SQuAD 1.1: Ignore no-answer examples
         self.ids = torch.from_numpy(dataset['ids']).long()
@@ -660,7 +661,7 @@ def convert_tokens(eval_dict, qa_id, y_start_list, y_end_list, no_answer):
         sub_dict (dict): Dictionary UUIDs -> predicted answer text (submission).
     """
     pred_dict = {}
-    sub_dict = {}
+    sub_dict = {} # not used 
     for qid, y_start, y_end in zip(qa_id, y_start_list, y_end_list):
         context = eval_dict[str(qid)]["context"]
         spans = eval_dict[str(qid)]["spans"]

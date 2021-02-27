@@ -29,8 +29,8 @@ glove_word_size = int(2.2e6) #Corpus size for Glove
 glove_dim = 300 #Embedding dimension for Glove
 char_dim = 64 #Embedding dimension for char
 
-para_limit = 400 #Limit length for paragraph
-ques_limit = 50 #Limit length for question
+para_limit = 399 #Limit length for paragraph
+ques_limit = 49 #Limit length for question
 ans_limit = 30 #Limit length for answers
 char_limit = 16 #Limit length for character
 word_count_limit = -1 #Min count for word

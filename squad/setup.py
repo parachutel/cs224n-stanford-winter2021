@@ -318,6 +318,7 @@ def build_features(args, examples, data_type, out_file, word2idx_dict, char2idx_
         ques_char_idxs.append(ques_char_idx)
 
         if is_answerable(example):
+            # use the last answer as the target answer if multiple answers present
             start, end = example["y1s"][-1], example["y2s"][-1]
         else:
             start, end = -1, -1
