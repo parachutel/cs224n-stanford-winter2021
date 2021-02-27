@@ -482,7 +482,7 @@ class Pointer(nn.Module):
     def forward(self, M1, M2, M3, mask):
         X1 = torch.cat([M1, M2], dim=1)
         X2 = torch.cat([M1, M3], dim=1)
-        print(X1.shape, self.w1.shape)
+        # print(X1.shape, self.w1.shape)
         Y1 = torch.matmul(self.w1, X1) # (2 * d_model) x (bs, 2 * d_model, seq_len) -> (bs, seq_len)
         Y2 = torch.matmul(self.w2, X2)
         Y1 = mask_logits(Y1, mask)
