@@ -7,7 +7,9 @@ Author:
 import layers
 import torch
 import torch.nn as nn
+import torch.nn.functional as F
 
+import qanet_modules
 import qanet_config
 
 class BiDAF(nn.Module):
@@ -111,4 +113,53 @@ class QANet(nn.Module):
         for enc in self.model_enc_blks: 
             M3 = enc(M3, cmask)
         p1, p2 = self.out(M1, M2, M3, cmask)
+        return p1, p2
+
+
+class QANet2(nn.Module):
+    def __init__(self, word_mat, char_mat, n_encoder_blocks=7, n_head=4):
+        super().__init__()
+        D = qanet_modules.D
+        self.Lc = qanet_modules.Lc
+        self.Lq = qanet_modules.Lq
+        self.n_model_enc_blks = n_encoder_blocks
+        if qanet_config.pretrained_char:
+            print('Using pretrained character embeddings.')
+            self.char_emb = nn.Embedding.from_pretrained(torch.Tensor(char_mat), freeze=True)
+        else:
+            char_mat = torch.Tensor(char_mat)
+            self.char_emb = nn.Embedding.from_pretrained(char_mat, freeze=False)
+        self.word_emb = nn.Embedding.from_pretrained(torch.Tensor(word_mat), freeze=True)
+        self.emb = qanet_modules.Embedding()
+        self.emb_enc = qanet_modules.EncoderBlock(conv_num=4, ch_num=D, k=7, n_head=n_head)
+        self.cq_att = qanet_modules.CQAttention()
+        self.cq_resizer = qanet_modules.Initialized_Conv1d(D * 4, D)
+        self.model_enc_blks = nn.ModuleList([
+            qanet_modules.EncoderBlock(conv_num=2, ch_num=D, k=5, n_head=n_head) 
+            for _ in range(n_encoder_blocks)
+        ])
+        self.out = qanet_modules.Pointer()
+
+    def forward(self, Cwid, Ccid, Qwid, Qcid):
+        maskC = (torch.zeros_like(Cwid) != Cwid).float()
+        maskQ = (torch.zeros_like(Qwid) != Qwid).float()
+        Cw, Cc = self.word_emb(Cwid), self.char_emb(Ccid)
+        Qw, Qc = self.word_emb(Qwid), self.char_emb(Qcid)
+        C, Q = self.emb(Cc, Cw, self.Lc), self.emb(Qc, Qw, self.Lq)
+        Ce = self.emb_enc(C, maskC, 1, 1)
+        Qe = self.emb_enc(Q, maskQ, 1, 1)
+        X = self.cq_att(Ce, Qe, maskC, maskQ)
+        M0 = self.cq_resizer(X)
+        M0 = F.dropout(M0, p=qanet_config.dropout, training=self.training)
+        for i, blk in enumerate(self.model_enc_blks):
+             M0 = blk(M0, maskC, i*(2+2)+1, self.n_model_enc_blks)
+        M1 = M0
+        for i, blk in enumerate(self.model_enc_blks):
+             M0 = blk(M0, maskC, i*(2+2)+1, self.n_model_enc_blks)
+        M2 = M0
+        M0 = F.dropout(M0, p=qanet_config.dropout, training=self.training)
+        for i, blk in enumerate(self.model_enc_blks):
+             M0 = blk(M0, maskC, i*(2+2)+1, self.n_model_enc_blks)
+        M3 = M0
+        p1, p2 = self.out(M1, M2, M3, maskC)
         return p1, p2

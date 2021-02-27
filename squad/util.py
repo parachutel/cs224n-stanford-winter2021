@@ -170,6 +170,17 @@ def collate_fn_qanet(examples):
             question_idxs, question_char_idxs,
             y1s, y2s, ids)
 
+# def collate_fn_qanet(examples):
+#     Cwid, Ccid, Qwid, Qcid, y1, y2, ids = zip(*examples)
+#     Cwid = torch.tensor(Cwid).long()
+#     Ccid = torch.tensor(Ccid).long()
+#     Qwid = torch.tensor(Qwid).long()
+#     Qcid = torch.tensor(Qcid).long()
+#     y1 = torch.from_numpy(np.array(y1)).long()
+#     y2 = torch.from_numpy(np.array(y2)).long()
+#     ids = torch.from_numpy(np.array(ids)).long()
+#     return Cwid, Ccid, Qwid, Qcid, y1, y2, ids
+
 class AverageMeter:
     """Keep track of average values over time.
 

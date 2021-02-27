@@ -61,7 +61,7 @@ num_heads = 4 #Number of heads in multi-head attention
 
 # Extensions (Uncomment corresponding line in download.sh to download the required data)
 glove_char_file = os.path.join(home, "data", "glove", "glove.840B.300d-char.txt")
-pretrained_char = False #Whether to use pretrained char embedding
+pretrained_char = True #Whether to use pretrained char embedding
 
 fasttext_file = os.path.join(home, "data", "fasttext", "wiki-news-300d-1M.vec")
 fasttext = False #Whether to use fasttext

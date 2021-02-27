@@ -17,14 +17,14 @@ import util
 from args import get_train_args
 from collections import OrderedDict
 from json import dumps
-from models import BiDAF, QANet
+from models import BiDAF, QANet2
 from tensorboardX import SummaryWriter
 from tqdm import tqdm
 from ujson import load as json_load
 from util import collate_fn, collate_fn_qanet, SQuAD
 
 import qanet_config
-
+import math
 
 def main(args):
     # Set up logging and devices
@@ -54,10 +54,10 @@ def main(args):
                       hidden_size=args.hidden_size,
                       drop_prob=args.drop_prob)
     elif args.name == 'qanet':
-        model = QANet(word_mat=word_vectors, 
-                      char_mat=char_vectors,
-                      n_encoder_blocks=args.n_encoder_blocks,
-                      n_head=args.n_head)
+        model = QANet2(word_mat=word_vectors, 
+                       char_mat=char_vectors,
+                       n_encoder_blocks=args.n_encoder_blocks,
+                       n_head=args.n_head)
     else:
         raise NotImplementedError
     model = nn.DataParallel(model, args.gpu_ids)
@@ -82,11 +82,17 @@ def main(args):
         optimizer = optim.Adadelta(model.parameters(), args.lr,
                                    weight_decay=args.l2_wd)
     else:
-        optimizer = optim.Adam(model.parameters(), 
-                               lr=0.001,
-                               betas=(0.8, 0.999),
-                               eps=1e-7,
-                               weight_decay=3e-7)
+        parameters = filter(lambda param: param.requires_grad, model.parameters())
+        base_lr = 1
+        lr = qanet_config.learning_rate
+        lr_warm_up_num = qanet_config.lr_warm_up_num
+        # Optimizer
+        optimizer = optim.Adam(
+            lr=base_lr, betas=(0.9, 0.999), eps=1e-7, weight_decay=5e-8, params=parameters)
+        # LR scheduler
+        cr = lr / math.log2(lr_warm_up_num)
+        scheduler = optim.lr_scheduler.LambdaLR(optimizer,
+            lr_lambda=lambda ee: cr * math.log2(ee + 1) if ee < lr_warm_up_num else lr)
 
     scheduler = sched.LambdaLR(optimizer, lambda s: 1.)  # Constant LR
 
@@ -118,8 +124,8 @@ def main(args):
     while epoch != args.num_epochs:
         epoch += 1
         log.info(f'Starting epoch {epoch}...')
-        with torch.enable_grad(), \
-                tqdm(total=len(train_loader.dataset)) as progress_bar:
+        with torch.enable_grad(), tqdm(total=len(train_loader.dataset)) as progress_bar:
+            # One epoch:
             for cw_idxs, cc_idxs, qw_idxs, qc_idxs, y1, y2, ids in train_loader:
                 # Setup for forward
                 cw_idxs = cw_idxs.to(device)
@@ -194,6 +200,7 @@ def main(args):
                                    step=step,
                                    split='dev',
                                    num_visuals=args.num_visuals)
+            # End epoch
 
 
 def evaluate(model, data_loader, device, eval_file, max_len, use_squad_v2, algo_name):
