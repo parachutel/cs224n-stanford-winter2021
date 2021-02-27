@@ -54,7 +54,7 @@ class BiDAF(nn.Module):
         self.out = layers.BiDAFOutput(hidden_size=hidden_size,
                                       drop_prob=drop_prob)
 
-    def forward(self, cw_idxs, qw_idxs):
+    def forward(self, cw_idxs, cc_idxs, qw_idxs, qc_idxs):
         c_mask = torch.zeros_like(cw_idxs) != cw_idxs
         q_mask = torch.zeros_like(qw_idxs) != qw_idxs
         c_len, q_len = c_mask.sum(-1), q_mask.sum(-1)
@@ -76,47 +76,6 @@ class BiDAF(nn.Module):
 
 
 class QANet(nn.Module):
-    def __init__(self, word_mat, char_mat, n_encoder_blocks=7, n_head=4):
-        super().__init__()
-        self.char_emb = nn.Embedding.from_pretrained(torch.Tensor(char_mat), freeze=qanet_config.pretrained_char)
-        self.word_emb = nn.Embedding.from_pretrained(torch.Tensor(word_mat))
-        self.emb = layers.QANetEmbedding()
-        self.context_conv = layers.DepthwiseSeparableConv(layers.d_word + layers.d_char, layers.d_model, 5)
-        self.question_conv = layers.DepthwiseSeparableConv(layers.d_word + layers.d_char, layers.d_model, 5)
-        self.c_emb_enc = layers.EncoderBlock(conv_num=4, ch_num=layers.d_model, k=7, length=layers.len_c, n_head=n_head)
-        self.q_emb_enc = layers.EncoderBlock(conv_num=4, ch_num=layers.d_model, k=7, length=layers.len_q, n_head=n_head)
-        self.cq_att = layers.CQAttention()
-        self.cq_resizer = layers.DepthwiseSeparableConv(layers.d_model * 4, layers.d_model, 5)
-        enc_blk = layers.EncoderBlock(conv_num=2, ch_num=layers.d_model, k=5, length=layers.len_c, n_head=n_head)
-        self.model_enc_blks = nn.ModuleList([enc_blk] * n_encoder_blocks)
-        self.out = layers.Pointer()
-
-    def forward(self, Cwid, Ccid, Qwid, Qcid):
-        cmask = (torch.zeros_like(Cwid) == Cwid).float()
-        qmask = (torch.zeros_like(Qwid) == Qwid).float()
-        Cw, Cc = self.word_emb(Cwid), self.char_emb(Ccid)
-        Qw, Qc = self.word_emb(Qwid), self.char_emb(Qcid)
-        C, Q = self.emb(Cc, Cw), self.emb(Qc, Qw)
-        C = self.context_conv(C)
-        Q = self.question_conv(Q)
-        Ce = self.c_emb_enc(C, cmask)
-        Qe = self.q_emb_enc(Q, qmask)
-        
-        X = self.cq_att(Ce, Qe, cmask, qmask)
-        M1 = self.cq_resizer(X)
-        for enc in self.model_enc_blks: 
-            M1 = enc(M1, cmask)
-        M2 = M1
-        for enc in self.model_enc_blks: 
-            M2 = enc(M2, cmask)
-        M3 = M2
-        for enc in self.model_enc_blks: 
-            M3 = enc(M3, cmask)
-        p1, p2 = self.out(M1, M2, M3, cmask)
-        return p1, p2
-
-
-class QANet2(nn.Module):
     def __init__(self, word_mat, char_mat, n_encoder_blocks=7, n_head=4):
         super().__init__()
         D = qanet_modules.D
