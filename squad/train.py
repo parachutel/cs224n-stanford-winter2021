@@ -17,7 +17,7 @@ import util
 from args import get_train_args
 from collections import OrderedDict
 from json import dumps
-from models import BiDAF, QANet2
+from models import BiDAF, QANet, QANet2
 from tensorboardX import SummaryWriter
 from tqdm import tqdm
 from ujson import load as json_load
@@ -81,6 +81,8 @@ def main(args):
     if args.name == 'baseline':
         optimizer = optim.Adadelta(model.parameters(), args.lr,
                                    weight_decay=args.l2_wd)
+        scheduler = sched.LambdaLR(optimizer, lambda s: 1.)  # Constant LR
+
     else:
         parameters = filter(lambda param: param.requires_grad, model.parameters())
         base_lr = 1
@@ -94,8 +96,7 @@ def main(args):
         scheduler = optim.lr_scheduler.LambdaLR(optimizer,
             lr_lambda=lambda ee: cr * math.log2(ee + 1) if ee < lr_warm_up_num else lr)
 
-    scheduler = sched.LambdaLR(optimizer, lambda s: 1.)  # Constant LR
-
+    
     # Get data loader
     log.info('Building dataset...')
     train_dataset = SQuAD(args.train_record_file, args.use_squad_v2, algo=args.name)
@@ -149,10 +150,12 @@ def main(args):
                 y1, y2 = y1.to(device), y2.to(device)
 
                 # print('train', log_p1.shape, y1.shape)
-                # print('train', torch.argmax(log_p1, dim=-1), y1, torch.argmax(log_p2, dim=-1), y2)
 
                 loss = F.nll_loss(log_p1, y1) + F.nll_loss(log_p2, y2)
                 loss_val = loss.item()
+
+                # print(log_p1[0], y1[0])
+                # print('train', loss_val, torch.argmax(log_p1.exp(), dim=-1), y1, torch.argmax(log_p2.exp(), dim=-1), y2)
 
                 # Backward
                 loss.backward()
