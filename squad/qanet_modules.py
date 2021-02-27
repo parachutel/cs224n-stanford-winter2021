@@ -305,6 +305,7 @@ class Pointer(nn.Module):
         X2 = torch.cat([M1, M3], dim=1)
         Y1 = mask_logits(self.w1(X1).squeeze(), mask)
         Y2 = mask_logits(self.w2(X2).squeeze(), mask)
+        # print(Y1[0])
         p1 = F.log_softmax(Y1, dim=1)
         p2 = F.log_softmax(Y2, dim=1)
         return p1, p2
