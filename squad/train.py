@@ -17,7 +17,7 @@ import util
 from args import get_train_args
 from collections import OrderedDict
 from json import dumps
-from models import BiDAF, QANet, QANet2
+from models import BiDAF, QANet
 from tensorboardX import SummaryWriter
 from tqdm import tqdm
 from ujson import load as json_load
@@ -54,10 +54,10 @@ def main(args):
                       hidden_size=args.hidden_size,
                       drop_prob=args.drop_prob)
     elif args.name == 'qanet':
-        model = QANet2(word_mat=word_vectors, 
-                       char_mat=char_vectors,
-                       n_encoder_blocks=args.n_encoder_blocks,
-                       n_head=args.n_head)
+        model = QANet(word_mat=word_vectors, 
+                      char_mat=char_vectors,
+                      n_encoder_blocks=args.n_encoder_blocks,
+                      n_head=args.n_head)
     else:
         raise NotImplementedError
     model = nn.DataParallel(model, args.gpu_ids)
@@ -222,12 +222,7 @@ def evaluate(model, data_loader, device, eval_file, max_len, use_squad_v2, algo_
             batch_size = cw_idxs.size(0)
 
             # Forward
-            if algo_name == 'baseline':
-                log_p1, log_p2 = model(cw_idxs, qw_idxs)
-            elif algo_name == 'qanet':
-                log_p1, log_p2 = model(cw_idxs, cc_idxs, qw_idxs, qc_idxs)
-            else:
-                raise NotImplementedError
+            log_p1, log_p2 = model(cw_idxs, cc_idxs, qw_idxs, qc_idxs)
 
             y1, y2 = y1.to(device), y2.to(device)
             loss = F.nll_loss(log_p1, y1) + F.nll_loss(log_p2, y2)

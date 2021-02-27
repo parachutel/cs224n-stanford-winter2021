@@ -255,3 +255,16 @@ def add_train_test_args(parser):
                         type=str,
                         default=None,
                         help='Path to load as a model checkpoint.')
+    #########################################################################################
+    # QANet parameters ######################################################################
+    #########################################################################################
+    parser.add_argument('--n_encoder_blocks',
+                        type=int,
+                        default=7,
+                        help='Number of layers of encoder blocks in QANet.')
+    parser.add_argument('--n_head',
+                        type=int,
+                        default=4,
+                        help='Number of attention heads in QANet.')
+    #########################################################################################
+    #########################################################################################
