@@ -142,7 +142,11 @@ def main(args):
                        num_visuals=args.num_visuals)
 
     # Write submission file
-    sub_path = join(args.save_dir, args.split + '_' + args.sub_file)
+    if args.split == 'dev':
+        split_name = 'val'
+    else:
+        split_name = args.split
+    sub_path = join(args.save_dir, split_name + '_' + args.sub_file)
     log.info(f'Writing submission file to {sub_path}...')
     with open(sub_path, 'w', newline='', encoding='utf-8') as csv_fh:
         csv_writer = csv.writer(csv_fh, delimiter=',')
