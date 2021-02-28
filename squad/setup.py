@@ -17,7 +17,7 @@ import spacy
 import ujson as json
 import urllib.request
 
-from args import get_args
+from args import args
 from codecs import open
 from collections import Counter
 from subprocess import run
@@ -378,7 +378,7 @@ def pre_process(args):
 
 if __name__ == '__main__':
     # Get command-line args
-    args_ = get_args()
+    args_ = args
 
     # Download resources
     download(args_)

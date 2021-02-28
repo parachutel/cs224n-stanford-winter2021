@@ -16,11 +16,9 @@ import tqdm
 import numpy as np
 import ujson as json
 import random
-import args
 
 from collections import Counter
-
-qanet_args = args.get_args()
+from args import args
 
 class SQuAD(data.Dataset):
     """Stanford Question Answering Dataset (SQuAD).
@@ -73,10 +71,10 @@ class SQuAD(data.Dataset):
 
             if test and algo == 'qanet':
                 # Truncate sequence len for QANet
-                self.context_idxs = self.context_idxs[:, :qanet_args.para_limit + 1]
-                self.question_idxs = self.question_idxs[:, :qanet_args.ques_limit + 1]
-                self.context_char_idxs = self.context_char_idxs[:, :qanet_args.para_limit + 1, :]
-                self.question_char_idxs = self.question_char_idxs[:, :qanet_args.ques_limit + 1, :]
+                self.context_idxs = self.context_idxs[:, :args.para_limit + 1]
+                self.question_idxs = self.question_idxs[:, :args.ques_limit + 1]
+                self.context_char_idxs = self.context_char_idxs[:, :args.para_limit + 1, :]
+                self.question_char_idxs = self.question_char_idxs[:, :args.ques_limit + 1, :]
 
         # SQuAD 1.1: Ignore no-answer examples
         self.ids = torch.from_numpy(dataset['ids']).long()

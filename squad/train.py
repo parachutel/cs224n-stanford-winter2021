@@ -15,7 +15,7 @@ import torch.optim.lr_scheduler as sched
 import torch.utils.data as data
 import util
 
-from args import get_args
+from args import args
 from collections import OrderedDict
 from json import dumps
 from models import BiDAF, QANet
@@ -253,4 +253,4 @@ def evaluate(model, data_loader, device, eval_file, max_len, use_squad_v2, algo_
 
 
 if __name__ == '__main__':
-    main(get_args())
+    main(args)

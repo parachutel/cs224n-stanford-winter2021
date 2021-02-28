@@ -2,17 +2,15 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 import math
-import args
+from args import args
 
-qanet_args = args.get_args()
-
-Dword = qanet_args.glove_dim
-Dchar = qanet_args.char_dim
-D = qanet_args.d_model
-dropout = qanet_args.qanet_dropout
-dropout_char = qanet_args.qanet_char_dropout
-Lc = qanet_args.para_limit + 1
-Lq = qanet_args.ques_limit + 1
+Dword = args.glove_dim
+Dchar = args.char_dim
+D = args.d_model
+dropout = args.qanet_dropout
+dropout_char = args.qanet_char_dropout
+Lc = args.para_limit + 1
+Lq = args.ques_limit + 1
 
 
 def mask_logits(inputs, mask):

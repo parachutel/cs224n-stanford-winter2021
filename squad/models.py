@@ -9,9 +9,8 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
-import args
+from args import args
 import qanet_modules
-qanet_args = args.get_args()
 
 
 class BiDAF(nn.Module):
@@ -84,7 +83,7 @@ class QANet(nn.Module):
         self.Lc = qanet_modules.Lc
         self.Lq = qanet_modules.Lq
         self.n_model_enc_blks = n_encoder_blocks
-        if qanet_args.use_pretrained_char:
+        if args.use_pretrained_char:
             print('Using pretrained character embeddings.')
             self.char_emb = nn.Embedding.from_pretrained(
                 torch.Tensor(char_mat), freeze=True)
@@ -114,14 +113,14 @@ class QANet(nn.Module):
         Qe = self.emb_enc(Q, maskQ, 1, 1)
         X = self.cq_att(Ce, Qe, maskC, maskQ)
         M0 = self.cq_resizer(X)
-        M0 = F.dropout(M0, p=qanet_args.qanet_dropout, training=self.training)
+        M0 = F.dropout(M0, p=args.qanet_dropout, training=self.training)
         for i, blk in enumerate(self.model_enc_blks):
              M0 = blk(M0, maskC, i*(2+2)+1, self.n_model_enc_blks)
         M1 = M0
         for i, blk in enumerate(self.model_enc_blks):
              M0 = blk(M0, maskC, i*(2+2)+1, self.n_model_enc_blks)
         M2 = M0
-        M0 = F.dropout(M0, p=qanet_args.qanet_dropout, training=self.training)
+        M0 = F.dropout(M0, p=args.qanet_dropout, training=self.training)
         for i, blk in enumerate(self.model_enc_blks):
              M0 = blk(M0, maskC, i*(2+2)+1, self.n_model_enc_blks)
         M3 = M0

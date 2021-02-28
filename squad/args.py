@@ -252,3 +252,5 @@ def get_args():
     else:
         raise ValueError(f'Unrecognized metric name: "{args.metric_name}"')
     return args
+
+args = get_args()
