@@ -12,6 +12,7 @@ def get_setup_args():
     parser = argparse.ArgumentParser('Download and pre-process SQuAD')
 
     add_common_args(parser)
+    # See seq len limits in add_common_args
 
     parser.add_argument('--train_url',
                         type=str,
@@ -40,42 +41,6 @@ def get_setup_args():
     parser.add_argument('--answer_file',
                         type=str,
                         default='./data/answer.json')
-    parser.add_argument('--para_limit',
-                        type=int,
-                        default=400,
-                        help='Max number of words in a paragraph')
-    parser.add_argument('--ques_limit',
-                        type=int,
-                        default=50,
-                        help='Max number of words to keep from a question')
-    parser.add_argument('--test_para_limit',
-                        type=int,
-                        default=1000,
-                        help='Max number of words in a paragraph at test time')
-    parser.add_argument('--test_ques_limit',
-                        type=int,
-                        default=100,
-                        help='Max number of words in a question at test time')
-    parser.add_argument('--char_dim',
-                        type=int,
-                        default=64,
-                        help='Size of char vectors (char-level embeddings)')
-    parser.add_argument('--glove_dim',
-                        type=int,
-                        default=300,
-                        help='Size of GloVe word vectors to use')
-    parser.add_argument('--glove_num_vecs',
-                        type=int,
-                        default=2196017,
-                        help='Number of GloVe vectors')
-    parser.add_argument('--ans_limit',
-                        type=int,
-                        default=30,
-                        help='Max number of words in a training example answer')
-    parser.add_argument('--char_limit',
-                        type=int,
-                        default=16,
-                        help='Max number of chars to keep from a word')
     parser.add_argument('--include_test_examples',
                         type=lambda s: s.lower().startswith('t'),
                         default=True,
@@ -201,6 +166,43 @@ def add_common_args(parser):
                         type=str,
                         default='./data/test_eval.json')
 
+    parser.add_argument('--para_limit',
+                        type=int,
+                        default=400,
+                        help='Max number of words in a paragraph')
+    parser.add_argument('--ques_limit',
+                        type=int,
+                        default=50,
+                        help='Max number of words to keep from a question')
+    parser.add_argument('--test_para_limit',
+                        type=int,
+                        default=1000,
+                        help='Max number of words in a paragraph at test time')
+    parser.add_argument('--test_ques_limit',
+                        type=int,
+                        default=100,
+                        help='Max number of words in a question at test time')
+    parser.add_argument('--char_dim',
+                        type=int,
+                        default=64,
+                        help='Size of char vectors (char-level embeddings)')
+    parser.add_argument('--glove_dim',
+                        type=int,
+                        default=300,
+                        help='Size of GloVe word vectors to use')
+    parser.add_argument('--glove_num_vecs',
+                        type=int,
+                        default=2196017,
+                        help='Number of GloVe vectors')
+    parser.add_argument('--ans_limit',
+                        type=int,
+                        default=30,
+                        help='Max number of words in a training example answer')
+    parser.add_argument('--char_limit',
+                        type=int,
+                        default=16,
+                        help='Max number of chars to keep from a word')
+
 
 def add_train_test_args(parser):
     """Add arguments common to train.py and test.py"""
@@ -242,9 +244,21 @@ def add_train_test_args(parser):
                         type=str,
                         default=None,
                         help='Path to load as a model checkpoint.')
-    #########################################################################################
-    # QANet parameters ######################################################################
-    #########################################################################################
+    ############################################################################
+    # QANet parameters #########################################################
+    # See: #####################################################################
+    # https://github.com/andy840314/QANet-pytorch-/blob/master/config.py
+    # https://github.com/heliumsea/QANet-pytorch/blob/master/config.py
+    ############################################################################
+
+    parser.add_argument('--qanet_lr',
+                        type=float,
+                        default=0.001,
+                        help='Learning rate.')
+    parser.add_argument('--lr_warm_up_num',
+                        type=int,
+                        default=1000,
+                        help='Number of steps for warming up training.')
     parser.add_argument('--n_encoder_blocks',
                         type=int,
                         default=7,
@@ -253,5 +267,21 @@ def add_train_test_args(parser):
                         type=int,
                         default=4,
                         help='Number of attention heads in QANet.')
+    parser.add_argument('--d_model',
+                        type=int,
+                        default=96,
+                        help='Dimension of connectors in QANet.')
+    parser.add_argument('--qanet_dropout',
+                        type=float,
+                        default=0.1,
+                        help='Probability of zeroing an activation in dropout layers.')
+    parser.add_argument('--qanet_char_dropout',
+                        type=float,
+                        default=0.05,
+                        help='Probability of zeroing an activation in dropout layers.')
+    parser.add_argument('--use_pretrained_char',
+                        type=lambda s: s.lower().startswith('t'),
+                        default=True,
+                        help='Whether to use pretrained character embeddings.')
     #########################################################################################
     #########################################################################################

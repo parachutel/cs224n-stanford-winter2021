@@ -4,6 +4,7 @@ Author:
     Chris Chute (chute@stanford.edu)
 """
 
+import math
 import numpy as np
 import random
 import torch
@@ -23,12 +24,10 @@ from tqdm import tqdm
 from ujson import load as json_load
 from util import collate_fn, collate_fn_qanet, SQuAD
 
-import qanet_config
-import math
 
 def main(args):
     # Set up logging and devices
-    args.save_dir = util.get_save_dir(args, qanet_config, training=True)
+    args.save_dir = util.get_save_dir(args, training=True)
     log = util.get_logger(args.save_dir, args.name)
     tbx = SummaryWriter(args.save_dir)
     device, args.gpu_ids = util.get_available_devices()
@@ -87,8 +86,8 @@ def main(args):
         parameters = filter(lambda param: param.requires_grad, 
                             model.parameters())
         base_lr = 1
-        lr = qanet_config.learning_rate
-        lr_warm_up_num = qanet_config.lr_warm_up_num
+        lr = args.qanet_lr
+        lr_warm_up_num = args.lr_warm_up_num
         # Optimizer
         optimizer = optim.Adam(lr=base_lr, betas=(0.9, 0.999), eps=1e-7, 
                                weight_decay=5e-8, params=parameters)

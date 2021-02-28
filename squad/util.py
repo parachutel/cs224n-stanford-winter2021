@@ -16,10 +16,11 @@ import tqdm
 import numpy as np
 import ujson as json
 import random
+import args
 
 from collections import Counter
-import qanet_config
 
+qanet_args = args.get_train_args()
 
 class SQuAD(data.Dataset):
     """Stanford Question Answering Dataset (SQuAD).
@@ -72,10 +73,10 @@ class SQuAD(data.Dataset):
 
             if test and algo == 'qanet':
                 # Truncate sequence len for QANet
-                self.context_idxs = self.context_idxs[:, :qanet_config.para_limit + 1]
-                self.question_idxs = self.question_idxs[:, :qanet_config.ques_limit + 1]
-                self.context_char_idxs = self.context_char_idxs[:, :qanet_config.para_limit + 1, :]
-                self.question_char_idxs = self.question_char_idxs[:, :qanet_config.ques_limit + 1, :]
+                self.context_idxs = self.context_idxs[:, :qanet_args.para_limit + 1]
+                self.question_idxs = self.question_idxs[:, :qanet_args.ques_limit + 1]
+                self.context_char_idxs = self.context_char_idxs[:, :qanet_args.para_limit + 1, :]
+                self.question_char_idxs = self.question_char_idxs[:, :qanet_args.ques_limit + 1, :]
 
         # SQuAD 1.1: Ignore no-answer examples
         self.ids = torch.from_numpy(dataset['ids']).long()
@@ -486,7 +487,7 @@ def save_preds(preds, save_dir, file_name='predictions.csv'):
     return save_path
 
 
-def get_save_dir(args, qanet_config, training, id_max=100):
+def get_save_dir(args, training, id_max=100):
     """Get a unique save directory by appending the smallest positive integer
     `id < id_max` that is not already taken (i.e., no dir exists with that id).
 
@@ -504,7 +505,7 @@ def get_save_dir(args, qanet_config, training, id_max=100):
     if name == 'qanet':
         name = '_'.join([
             'qanet',
-            'D={}'.format(qanet_config.d_model),
+            'D={}'.format(args.d_model),
             'encblk={}'.format(args.n_encoder_blocks), 
             'head={}'.format(args.n_head),
             'bs={}'.format(args.batch_size),
