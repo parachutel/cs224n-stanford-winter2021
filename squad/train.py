@@ -84,23 +84,27 @@ def main(args):
         scheduler = sched.LambdaLR(optimizer, lambda s: 1.)  # Constant LR
 
     else:
-        parameters = filter(lambda param: param.requires_grad, model.parameters())
+        parameters = filter(lambda param: param.requires_grad, 
+                            model.parameters())
         base_lr = 1
         lr = qanet_config.learning_rate
         lr_warm_up_num = qanet_config.lr_warm_up_num
         # Optimizer
-        optimizer = optim.Adam(
-            lr=base_lr, betas=(0.9, 0.999), eps=1e-7, weight_decay=5e-8, params=parameters)
+        optimizer = optim.Adam(lr=base_lr, betas=(0.9, 0.999), eps=1e-7, 
+                               weight_decay=5e-8, params=parameters)
         # LR scheduler
         cr = lr / math.log2(lr_warm_up_num)
         scheduler = optim.lr_scheduler.LambdaLR(optimizer,
-            lr_lambda=lambda ee: cr * math.log2(ee + 1) if ee < lr_warm_up_num else lr)
+            lr_lambda=lambda ee: cr * math.log2(ee + 1) 
+                if ee < lr_warm_up_num else lr)
 
     
     # Get data loader
     log.info('Building dataset...')
-    train_dataset = SQuAD(args.train_record_file, args.use_squad_v2, algo=args.name)
-    dev_dataset = SQuAD(args.dev_record_file, args.use_squad_v2, algo=args.name)
+    train_dataset = SQuAD(args.train_record_file, args.use_squad_v2, 
+                          algo=args.name)
+    dev_dataset = SQuAD(args.dev_record_file, args.use_squad_v2, 
+                        algo=args.name)
 
     if args.name == 'baseline':
         collate = collate_fn
@@ -134,8 +138,6 @@ def main(args):
                 cc_idxs = cc_idxs.to(device)
                 qc_idxs = qc_idxs.to(device)
 
-                # print('train', cw_idxs.shape, cc_idxs.shape, qw_idxs.shape, qc_idxs.shape)
-
                 batch_size = cw_idxs.size(0)
                 optimizer.zero_grad()
 
@@ -149,13 +151,8 @@ def main(args):
 
                 y1, y2 = y1.to(device), y2.to(device)
 
-                # print('train', log_p1.shape, y1.shape)
-
                 loss = F.nll_loss(log_p1, y1) + F.nll_loss(log_p2, y2)
                 loss_val = loss.item()
-
-                # print(log_p1[0], y1[0])
-                # print('train', loss_val, torch.argmax(log_p1.exp(), dim=-1), y1, torch.argmax(log_p2.exp(), dim=-1), y2)
 
                 # Backward
                 loss.backward()

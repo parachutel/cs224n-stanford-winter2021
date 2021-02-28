@@ -1,4 +1,9 @@
-# QANet Config
+"""QANet Config
+
+Refer to:
+    https://github.com/andy840314/QANet-pytorch-/blob/master/config.py
+    https://github.com/heliumsea/QANet-pytorch/blob/master/config.py
+"""
 
 # Data
 glove_dim = 300 #Embedding dimension for Glove
@@ -9,13 +14,8 @@ ques_limit = 50 #Limit length for question
 # Train
 dropout = 0.1 #Dropout prob across the layers
 dropout_char = 0.05 #Dropout prob across the layers
-grad_clip = 5.0 #Global Norm gradient clipping rate
 learning_rate = 0.001 #Learning rate
 lr_warm_up_num = 1000 #Number of warm-up steps of learning rate
-ema_decay = 0.9999 #Exponential moving average decay
-beta1 = 0.8 #Beta 1
-beta2 = 0.999 #Beta 2
-early_stop = 10 #Checkpoints for early stop
 
 # Model
 d_model = 96 #Dimension of connectors of each layer
