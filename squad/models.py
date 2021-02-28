@@ -4,7 +4,7 @@ Author:
     Chris Chute (chute@stanford.edu)
 """
 
-import layers
+import baseline_modules as layers
 import torch
 import torch.nn as nn
 import torch.nn.functional as F

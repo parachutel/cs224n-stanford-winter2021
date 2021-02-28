@@ -34,7 +34,8 @@ def mask_logits(inputs, mask):
 class Initialized_Conv1d(nn.Module):
     def __init__(self, in_channels, out_channels, kernel_size=1, relu=False, stride=1, padding=0, groups=1, bias=False):
         super().__init__()
-        self.out = nn.Conv1d(in_channels, out_channels, kernel_size, stride=stride, padding=padding, groups=groups, bias=bias)
+        self.out = nn.Conv1d(
+            in_channels, out_channels, kernel_size, stride=stride, padding=padding, groups=groups, bias=bias)
         if relu is True:
             self.relu = True
             nn.init.kaiming_normal_(self.out.weight, nonlinearity='relu')
@@ -76,8 +77,10 @@ def get_timing_signal(length, channels, min_timescale=1.0, max_timescale=1.0e4):
 class DepthwiseSeparableConv(nn.Module):
     def __init__(self, in_ch, out_ch, k, bias=True):
         super().__init__()
-        self.depthwise_conv = nn.Conv1d(in_channels=in_ch, out_channels=in_ch, kernel_size=k, groups=in_ch, padding=k // 2, bias=False)
-        self.pointwise_conv = nn.Conv1d(in_channels=in_ch, out_channels=out_ch, kernel_size=1, padding=0, bias=bias)
+        self.depthwise_conv = nn.Conv1d(
+            in_channels=in_ch, out_channels=in_ch, kernel_size=k, groups=in_ch, padding=k // 2, bias=False)
+        self.pointwise_conv = nn.Conv1d(
+            in_channels=in_ch, out_channels=out_ch, kernel_size=1, padding=0, bias=bias)
     def forward(self, x):
         return F.relu(self.pointwise_conv(self.depthwise_conv(x)))
 
@@ -86,8 +89,10 @@ class Highway(nn.Module):
     def __init__(self, layer_num: int, size=D):
         super().__init__()
         self.n = layer_num
-        self.linear = nn.ModuleList([Initialized_Conv1d(size, size, relu=False, bias=True) for _ in range(self.n)])
-        self.gate = nn.ModuleList([Initialized_Conv1d(size, size, bias=True) for _ in range(self.n)])
+        self.linear = nn.ModuleList([
+            Initialized_Conv1d(size, size, relu=False, bias=True) for _ in range(self.n)])
+        self.gate = nn.ModuleList([
+            Initialized_Conv1d(size, size, bias=True) for _ in range(self.n)])
 
     def forward(self, x):
         #x: shape [batch_size, hidden_size, length]
@@ -104,7 +109,7 @@ class SelfAttention(nn.Module):
     def __init__(self, n_head=8):
         super().__init__()
         self.n_head = n_head
-        self.mem_conv = Initialized_Conv1d(D, D*2, kernel_size=1, relu=False, bias=False)
+        self.mem_conv = Initialized_Conv1d(D, D * 2, kernel_size=1, relu=False, bias=False)
         self.query_conv = Initialized_Conv1d(D, D, kernel_size=1, relu=False, bias=False)
 
         bias = torch.empty(1)

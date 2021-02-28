@@ -28,10 +28,11 @@ from tqdm import tqdm
 from ujson import load as json_load
 from util import collate_fn, collate_fn_qanet, SQuAD
 
+import qanet_config
 
 def main(args):
     # Set up logging
-    args.save_dir = util.get_save_dir(args, training=False)
+    args.save_dir = util.get_save_dir(args, qanet_config, training=False)
     log = util.get_logger(args.save_dir, args.name)
     log.info(f'Args: {dumps(vars(args), indent=4, sort_keys=True)}')
     device, gpu_ids = util.get_available_devices()
