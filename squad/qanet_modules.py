@@ -3,18 +3,6 @@ import torch.nn as nn
 import torch.nn.functional as F
 import math
 import qanet_config
-# from config import config
-
-# D = config.connector_dim
-# Nh = config.num_heads
-# Dword = config.glove_dim
-# Dchar = config.char_dim
-# batch_size = config.batch_size
-# dropout = config.dropout
-# dropout_char = config.dropout_char
-
-# Lc = config.para_limit
-# Lq = config.ques_limit
 
 D = qanet_config.d_model
 Dword = qanet_config.glove_dim
@@ -32,10 +20,12 @@ def mask_logits(inputs, mask):
 
 
 class Initialized_Conv1d(nn.Module):
-    def __init__(self, in_channels, out_channels, kernel_size=1, relu=False, stride=1, padding=0, groups=1, bias=False):
+    def __init__(self, in_channels, out_channels, kernel_size=1, relu=False, 
+                 stride=1, padding=0, groups=1, bias=False):
         super().__init__()
         self.out = nn.Conv1d(
-            in_channels, out_channels, kernel_size, stride=stride, padding=padding, groups=groups, bias=bias)
+            in_channels, out_channels, kernel_size, 
+            stride=stride, padding=padding, groups=groups, bias=bias)
         if relu is True:
             self.relu = True
             nn.init.kaiming_normal_(self.out.weight, nonlinearity='relu')
@@ -63,9 +53,11 @@ def PosEncoder(x, min_timescale=1.0, max_timescale=1.0e4):
 def get_timing_signal(length, channels, min_timescale=1.0, max_timescale=1.0e4):
     position = torch.arange(length).type(torch.float32)
     num_timescales = channels // 2
-    log_timescale_increment = (math.log(float(max_timescale) / float(min_timescale)) / (float(num_timescales)-1))
+    log_timescale_increment = (
+        math.log(float(max_timescale) / float(min_timescale)) / (float(num_timescales)-1)
+    )
     inv_timescales = min_timescale * torch.exp(
-            torch.arange(num_timescales).type(torch.float32) * -log_timescale_increment)
+        torch.arange(num_timescales).type(torch.float32) * -log_timescale_increment)
     scaled_time = position.unsqueeze(1) * inv_timescales.unsqueeze(0)
     signal = torch.cat([torch.sin(scaled_time), torch.cos(scaled_time)], dim = 1)
     m = nn.ZeroPad2d((0, (channels % 2), 0, 0))
@@ -78,9 +70,10 @@ class DepthwiseSeparableConv(nn.Module):
     def __init__(self, in_ch, out_ch, k, bias=True):
         super().__init__()
         self.depthwise_conv = nn.Conv1d(
-            in_channels=in_ch, out_channels=in_ch, kernel_size=k, groups=in_ch, padding=k // 2, bias=False)
-        self.pointwise_conv = nn.Conv1d(
-            in_channels=in_ch, out_channels=out_ch, kernel_size=1, padding=0, bias=bias)
+            in_channels=in_ch, out_channels=in_ch, kernel_size=k, 
+            groups=in_ch, padding=k // 2, bias=False)
+        self.pointwise_conv = nn.Conv1d(in_channels=in_ch, out_channels=out_ch, 
+                                        kernel_size=1, padding=0, bias=bias)
     def forward(self, x):
         return F.relu(self.pointwise_conv(self.depthwise_conv(x)))
 
@@ -90,7 +83,9 @@ class Highway(nn.Module):
         super().__init__()
         self.n = layer_num
         self.linear = nn.ModuleList([
-            Initialized_Conv1d(size, size, relu=False, bias=True) for _ in range(self.n)])
+            Initialized_Conv1d(size, size, relu=False, bias=True) 
+            for _ in range(self.n)
+        ])
         self.gate = nn.ModuleList([
             Initialized_Conv1d(size, size, bias=True) for _ in range(self.n)])
 
@@ -109,8 +104,10 @@ class SelfAttention(nn.Module):
     def __init__(self, n_head=8):
         super().__init__()
         self.n_head = n_head
-        self.mem_conv = Initialized_Conv1d(D, D * 2, kernel_size=1, relu=False, bias=False)
-        self.query_conv = Initialized_Conv1d(D, D, kernel_size=1, relu=False, bias=False)
+        self.mem_conv = Initialized_Conv1d(
+            D, D * 2, kernel_size=1, relu=False, bias=False)
+        self.query_conv = Initialized_Conv1d(
+            D, D, kernel_size=1, relu=False, bias=False)
 
         bias = torch.empty(1)
         nn.init.constant_(bias, 0)
@@ -124,7 +121,10 @@ class SelfAttention(nn.Module):
         memory = memory.transpose(1, 2)
         query = query.transpose(1, 2)
         Q = self.split_last_dim(query, self.n_head)
-        K, V = [self.split_last_dim(tensor, self.n_head) for tensor in torch.split(memory, D, dim=2)]
+        K, V = [
+            self.split_last_dim(tensor, self.n_head) 
+            for tensor in torch.split(memory, D, dim=2)
+        ]
 
         key_depth_per_head = D // self.n_head
         Q *= key_depth_per_head**-0.5
@@ -187,7 +187,8 @@ class SelfAttention(nn.Module):
 class Embedding(nn.Module):
     def __init__(self):
         super().__init__()
-        self.conv2d = nn.Conv2d(Dchar, D, kernel_size = (1,5), padding=0, bias=True)
+        self.conv2d = nn.Conv2d(
+            Dchar, D, kernel_size = (1,5), padding=0, bias=True)
         nn.init.kaiming_normal_(self.conv2d.weight, nonlinearity='relu')
         self.conv1d = Initialized_Conv1d(Dword+D, D, bias=False)
         self.high = Highway(2)
@@ -212,7 +213,9 @@ class Embedding(nn.Module):
 class EncoderBlock(nn.Module):
     def __init__(self, conv_num: int, ch_num: int, k: int, n_head=8):
         super().__init__()
-        self.convs = nn.ModuleList([DepthwiseSeparableConv(ch_num, ch_num, k) for _ in range(conv_num)])
+        self.convs = nn.ModuleList([
+            DepthwiseSeparableConv(ch_num, ch_num, k) for _ in range(conv_num)
+        ])
         self.self_att = SelfAttention(n_head)
         self.FFN_1 = Initialized_Conv1d(ch_num, ch_num, relu=True, bias=True)
         self.FFN_2 = Initialized_Conv1d(ch_num, ch_num, bias=True)
@@ -253,7 +256,8 @@ class EncoderBlock(nn.Module):
             if pred:
                 return residual
             else:
-                return F.dropout(inputs, dropout, training=self.training) + residual
+                return F.dropout(inputs, dropout, 
+                                 training=self.training) + residual
         else:
             return inputs + residual
 
