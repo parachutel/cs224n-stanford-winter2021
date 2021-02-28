@@ -109,14 +109,6 @@ def get_args():
                         type=int,
                         default=10000,
                         help='Number of steps between successive evaluations.')
-    parser.add_argument('--lr',
-                        type=float,
-                        default=0.5,
-                        help='Learning rate.')
-    parser.add_argument('--l2_wd',
-                        type=float,
-                        default=0,
-                        help='L2 weight decay.')
     parser.add_argument('--num_epochs',
                         type=int,
                         default=30,
@@ -200,6 +192,14 @@ def get_args():
                         type=int,
                         default=100,
                         help='Number of features in encoder hidden layers.')
+    parser.add_argument('--lr',
+                        type=float,
+                        default=0.5,
+                        help='Learning rate for baseline.')
+    parser.add_argument('--l2_wd',
+                        type=float,
+                        default=0,
+                        help='L2 weight decay for baseline.')
 
     ############################################################################
     # QANet parameters #########################################################
