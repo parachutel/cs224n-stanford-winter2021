@@ -18,7 +18,7 @@ import torch.nn.functional as F
 import torch.utils.data as data
 import util
 
-from args import get_test_args
+from args import get_args
 from collections import OrderedDict
 from json import dumps
 from models import BiDAF, QANet
@@ -156,4 +156,4 @@ def main(args):
 
 
 if __name__ == '__main__':
-    main(get_test_args()) 
+    main(get_args()) 

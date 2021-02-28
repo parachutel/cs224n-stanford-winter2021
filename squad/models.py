@@ -11,7 +11,7 @@ import torch.nn.functional as F
 
 import args
 import qanet_modules
-qanet_args = args.get_train_args()
+qanet_args = args.get_args()
 
 
 class BiDAF(nn.Module):

@@ -6,14 +6,10 @@ Author:
 
 import argparse
 
+def get_args():
+    parser = argparse.ArgumentParser()
 
-def get_setup_args():
-    """Get arguments needed in setup.py."""
-    parser = argparse.ArgumentParser('Download and pre-process SQuAD')
-
-    add_common_args(parser)
-    # See seq len limits in add_common_args
-
+    # Dataset
     parser.add_argument('--train_url',
                         type=str,
                         default='https://github.com/chrischute/squad/data/train-v2.0.json')
@@ -45,19 +41,70 @@ def get_setup_args():
                         type=lambda s: s.lower().startswith('t'),
                         default=True,
                         help='Process examples from the test set')
+    parser.add_argument('--train_record_file',
+                        type=str,
+                        default='./data/train.npz')
+    parser.add_argument('--dev_record_file',
+                        type=str,
+                        default='./data/dev.npz')
+    parser.add_argument('--test_record_file',
+                        type=str,
+                        default='./data/test.npz')
+    parser.add_argument('--word_emb_file',
+                        type=str,
+                        default='./data/word_emb.json')
+    parser.add_argument('--char_emb_file',
+                        type=str,
+                        default='./data/char_emb.json')
+    parser.add_argument('--train_eval_file',
+                        type=str,
+                        default='./data/train_eval.json')
+    parser.add_argument('--dev_eval_file',
+                        type=str,
+                        default='./data/dev_eval.json')
+    parser.add_argument('--test_eval_file',
+                        type=str,
+                        default='./data/test_eval.json')
+    
+    # Data preprocessing and dimensions
+    parser.add_argument('--glove_dim',
+                        type=int,
+                        default=300,
+                        help='Size of GloVe word vectors to use')
+    parser.add_argument('--glove_num_vecs',
+                        type=int,
+                        default=2196017,
+                        help='Number of GloVe vectors')
+    parser.add_argument('--para_limit',
+                        type=int,
+                        default=400,
+                        help='Max number of words in a paragraph')
+    parser.add_argument('--ques_limit',
+                        type=int,
+                        default=50,
+                        help='Max number of words to keep from a question')
+    parser.add_argument('--test_para_limit',
+                        type=int,
+                        default=1000,
+                        help='Max number of words in a paragraph at test time')
+    parser.add_argument('--test_ques_limit',
+                        type=int,
+                        default=100,
+                        help='Max number of words in a question at test time')
+    parser.add_argument('--char_dim',
+                        type=int,
+                        default=64,
+                        help='Size of char vectors (char-level embeddings)')
+    parser.add_argument('--ans_limit',
+                        type=int,
+                        default=30,
+                        help='Max number of words in a training example answer')
+    parser.add_argument('--char_limit',
+                        type=int,
+                        default=16,
+                        help='Max number of chars to keep from a word')
 
-    args = parser.parse_args()
-
-    return args
-
-
-def get_train_args():
-    """Get arguments needed in train.py."""
-    parser = argparse.ArgumentParser('Train a model on SQuAD')
-
-    add_common_args(parser)
-    add_train_test_args(parser)
-
+    # Train
     parser.add_argument('--eval_steps',
                         type=int,
                         default=10000,
@@ -98,29 +145,9 @@ def get_train_args():
     parser.add_argument('--ema_decay',
                         type=float,
                         default=0.999,
-                        help='Decay rate for exponential moving average of parameters.')
-
-    args = parser.parse_args()
-
-    if args.metric_name == 'NLL':
-        # Best checkpoint is the one that minimizes negative log-likelihood
-        args.maximize_metric = False
-    elif args.metric_name in ('EM', 'F1'):
-        # Best checkpoint is the one that maximizes EM or F1
-        args.maximize_metric = True
-    else:
-        raise ValueError(f'Unrecognized metric name: "{args.metric_name}"')
-
-    return args
-
-
-def get_test_args():
-    """Get arguments needed in test.py."""
-    parser = argparse.ArgumentParser('Test a trained model on SQuAD')
-
-    add_common_args(parser)
-    add_train_test_args(parser)
-
+                        help='Decay rate for exponential moving average of parameters.') 
+    
+    # Test
     parser.add_argument('--split',
                         type=str,
                         default='dev',
@@ -131,81 +158,8 @@ def get_test_args():
                         default='submission.csv',
                         help='Name for submission file.')
 
-    # Require load_path for test.py
-    args = parser.parse_args()
-    if not args.load_path:
-        raise argparse.ArgumentError('Missing required argument --load_path')
-
-    return args
-
-
-def add_common_args(parser):
-    """Add arguments common to all 3 scripts: setup.py, train.py, test.py"""
-    parser.add_argument('--train_record_file',
-                        type=str,
-                        default='./data/train.npz')
-    parser.add_argument('--dev_record_file',
-                        type=str,
-                        default='./data/dev.npz')
-    parser.add_argument('--test_record_file',
-                        type=str,
-                        default='./data/test.npz')
-    parser.add_argument('--word_emb_file',
-                        type=str,
-                        default='./data/word_emb.json')
-    parser.add_argument('--char_emb_file',
-                        type=str,
-                        default='./data/char_emb.json')
-    parser.add_argument('--train_eval_file',
-                        type=str,
-                        default='./data/train_eval.json')
-    parser.add_argument('--dev_eval_file',
-                        type=str,
-                        default='./data/dev_eval.json')
-    parser.add_argument('--test_eval_file',
-                        type=str,
-                        default='./data/test_eval.json')
-
-    parser.add_argument('--para_limit',
-                        type=int,
-                        default=400,
-                        help='Max number of words in a paragraph')
-    parser.add_argument('--ques_limit',
-                        type=int,
-                        default=50,
-                        help='Max number of words to keep from a question')
-    parser.add_argument('--test_para_limit',
-                        type=int,
-                        default=1000,
-                        help='Max number of words in a paragraph at test time')
-    parser.add_argument('--test_ques_limit',
-                        type=int,
-                        default=100,
-                        help='Max number of words in a question at test time')
-    parser.add_argument('--char_dim',
-                        type=int,
-                        default=64,
-                        help='Size of char vectors (char-level embeddings)')
-    parser.add_argument('--glove_dim',
-                        type=int,
-                        default=300,
-                        help='Size of GloVe word vectors to use')
-    parser.add_argument('--glove_num_vecs',
-                        type=int,
-                        default=2196017,
-                        help='Number of GloVe vectors')
-    parser.add_argument('--ans_limit',
-                        type=int,
-                        default=30,
-                        help='Max number of words in a training example answer')
-    parser.add_argument('--char_limit',
-                        type=int,
-                        default=16,
-                        help='Max number of chars to keep from a word')
-
-
-def add_train_test_args(parser):
-    """Add arguments common to train.py and test.py"""
+        
+    # Meta
     parser.add_argument('--name',
                         '-n',
                         type=str,
@@ -232,10 +186,6 @@ def add_train_test_args(parser):
                         type=lambda s: s.lower().startswith('t'),
                         default=True,
                         help='Whether to use SQuAD 2.0 (unanswerable) questions.')
-    parser.add_argument('--hidden_size',
-                        type=int,
-                        default=100,
-                        help='Number of features in encoder hidden layers.')
     parser.add_argument('--num_visuals',
                         type=int,
                         default=10,
@@ -244,13 +194,19 @@ def add_train_test_args(parser):
                         type=str,
                         default=None,
                         help='Path to load as a model checkpoint.')
+    
+    # Baseline
+    parser.add_argument('--hidden_size',
+                        type=int,
+                        default=100,
+                        help='Number of features in encoder hidden layers.')
+
     ############################################################################
     # QANet parameters #########################################################
     # See: #####################################################################
     # https://github.com/andy840314/QANet-pytorch-/blob/master/config.py
     # https://github.com/heliumsea/QANet-pytorch/blob/master/config.py
     ############################################################################
-
     parser.add_argument('--qanet_lr',
                         type=float,
                         default=0.001,
@@ -283,5 +239,16 @@ def add_train_test_args(parser):
                         type=lambda s: s.lower().startswith('t'),
                         default=True,
                         help='Whether to use pretrained character embeddings.')
-    #########################################################################################
-    #########################################################################################
+    ############################################################################
+    ############################################################################
+
+    args = parser.parse_args()
+    if args.metric_name == 'NLL':
+        # Best checkpoint is the one that minimizes negative log-likelihood
+        args.maximize_metric = False
+    elif args.metric_name in ('EM', 'F1'):
+        # Best checkpoint is the one that maximizes EM or F1
+        args.maximize_metric = True
+    else:
+        raise ValueError(f'Unrecognized metric name: "{args.metric_name}"')
+    return args

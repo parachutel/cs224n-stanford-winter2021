@@ -20,7 +20,7 @@ import args
 
 from collections import Counter
 
-qanet_args = args.get_train_args()
+qanet_args = args.get_args()
 
 class SQuAD(data.Dataset):
     """Stanford Question Answering Dataset (SQuAD).

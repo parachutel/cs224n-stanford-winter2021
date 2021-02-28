@@ -4,7 +4,7 @@ import torch.nn.functional as F
 import math
 import args
 
-qanet_args = args.get_train_args()
+qanet_args = args.get_args()
 
 Dword = qanet_args.glove_dim
 Dchar = qanet_args.char_dim
