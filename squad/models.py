@@ -84,13 +84,16 @@ class QANet(nn.Module):
         self.n_model_enc_blks = n_encoder_blocks
         if qanet_config.pretrained_char:
             print('Using pretrained character embeddings.')
-            self.char_emb = nn.Embedding.from_pretrained(torch.Tensor(char_mat), freeze=True)
+            self.char_emb = nn.Embedding.from_pretrained(
+                torch.Tensor(char_mat), freeze=True)
         else:
             char_mat = torch.Tensor(char_mat)
             self.char_emb = nn.Embedding.from_pretrained(char_mat, freeze=False)
-        self.word_emb = nn.Embedding.from_pretrained(torch.Tensor(word_mat), freeze=True)
+        self.word_emb = nn.Embedding.from_pretrained(
+            torch.Tensor(word_mat), freeze=True)
         self.emb = qanet_modules.Embedding()
-        self.emb_enc = qanet_modules.EncoderBlock(conv_num=4, ch_num=D, k=7, n_head=n_head)
+        self.emb_enc = qanet_modules.EncoderBlock(
+            conv_num=4, ch_num=D, k=7, n_head=n_head)
         self.cq_att = qanet_modules.CQAttention()
         self.cq_resizer = qanet_modules.Initialized_Conv1d(D * 4, D)
         self.model_enc_blks = nn.ModuleList([
