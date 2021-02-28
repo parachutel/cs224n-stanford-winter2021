@@ -18,6 +18,7 @@ import ujson as json
 import random
 
 from collections import Counter
+import qanet_config
 
 
 class SQuAD(data.Dataset):
@@ -42,7 +43,7 @@ class SQuAD(data.Dataset):
         data_path (str): Path to .npz file containing pre-processed dataset.
         use_v2 (bool): Whether to use SQuAD 2.0 questions. Otherwise only use SQuAD 1.1.
     """
-    def __init__(self, data_path, use_v2=True, algo='baseline'):
+    def __init__(self, data_path, use_v2=True, algo='baseline', test=False):
         super(SQuAD, self).__init__()
 
         dataset = np.load(data_path)
@@ -67,7 +68,14 @@ class SQuAD(data.Dataset):
             self.question_idxs = torch.cat((ones, self.question_idxs), dim=1)
             ones = torch.ones((batch_size, 1, w_len), dtype=torch.int64)
             self.context_char_idxs = torch.cat((ones, self.context_char_idxs), dim=1)
-            self.question_char_idxs = torch.cat((ones, self.question_char_idxs), dim=1) 
+            self.question_char_idxs = torch.cat((ones, self.question_char_idxs), dim=1)
+
+            if test and algo == 'qanet':
+                # Truncate sequence len for QANet
+                self.context_idxs = self.context_idxs[:, :qanet_config.para_limit + 1]
+                self.question_idxs = self.question_idxs[:, :qanet_config.ques_limit + 1]
+                self.context_char_idxs = self.context_char_idxs[:, :qanet_config.para_limit + 1, :]
+                self.question_char_idxs = self.question_char_idxs[:, :qanet_config.ques_limit + 1, :]
 
         # SQuAD 1.1: Ignore no-answer examples
         self.ids = torch.from_numpy(dataset['ids']).long()
@@ -505,6 +513,8 @@ def get_save_dir(args, qanet_config, training, id_max=100):
     for uid in range(1, id_max):
         subdir = 'train' if training else 'test'
         save_dir = os.path.join(base_dir, subdir, f'{name}-{uid:02d}')
+        if not training:
+            save_dir += ('-' + args.split)
         if not os.path.exists(save_dir):
             os.makedirs(save_dir)
             return save_dir
