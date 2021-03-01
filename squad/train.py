@@ -22,7 +22,7 @@ from models import BiDAF, QANet
 from tensorboardX import SummaryWriter
 from tqdm import tqdm
 from ujson import load as json_load
-from util import collate_fn, collate_fn_qanet, SQuAD
+from util import collate_fn, SQuAD
 
 
 def main(args):
@@ -105,21 +105,16 @@ def main(args):
     dev_dataset = SQuAD(args.dev_record_file, args.use_squad_v2, 
                         algo=args.name)
 
-    if args.name == 'baseline':
-        collate = collate_fn
-    else:
-        collate = collate_fn_qanet
-
     train_loader = data.DataLoader(train_dataset,
                                    batch_size=args.batch_size,
                                    shuffle=True,
                                    num_workers=args.num_workers,
-                                   collate_fn=collate)
+                                   collate_fn=collate_fn)
     dev_loader = data.DataLoader(dev_dataset,
                                  batch_size=args.batch_size,
                                  shuffle=False,
                                  num_workers=args.num_workers,
-                                 collate_fn=collate)
+                                 collate_fn=collate_fn)
 
     # Train
     log.info('Training...')
@@ -141,12 +136,7 @@ def main(args):
                 optimizer.zero_grad()
 
                 # Forward
-                if args.name == 'baseline':
-                    log_p1, log_p2 = model(cw_idxs, qw_idxs)
-                elif args.name == 'qanet':
-                    log_p1, log_p2 = model(cw_idxs, cc_idxs, qw_idxs, qc_idxs)
-                else:
-                    raise NotImplementedError
+                log_p1, log_p2 = model(cw_idxs, cc_idxs, qw_idxs, qc_idxs)
 
                 y1, y2 = y1.to(device), y2.to(device)
 

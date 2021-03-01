@@ -80,8 +80,8 @@ class QANet(nn.Module):
     def __init__(self, word_mat, char_mat, n_encoder_blocks=7, n_head=4):
         super().__init__()
         D = qanet_modules.D
-        self.Lc = qanet_modules.Lc
-        self.Lq = qanet_modules.Lq
+        self.Lc = None # deprecated
+        self.Lq = None # deprecated
         self.n_model_enc_blks = n_encoder_blocks
         if args.use_pretrained_char:
             print('Using pretrained character embeddings.')
@@ -96,7 +96,7 @@ class QANet(nn.Module):
         self.emb_enc = qanet_modules.EncoderBlock(
             conv_num=4, ch_num=D, k=7, n_head=n_head)
         self.cq_att = qanet_modules.CQAttention()
-        self.cq_resizer = qanet_modules.Initialized_Conv1d(D * 4, D)
+        self.cq_resizer = qanet_modules.Initialized_Conv1d(4 * D, D)
         self.model_enc_blks = nn.ModuleList([
             qanet_modules.EncoderBlock(conv_num=2, ch_num=D, k=5, n_head=n_head) 
             for _ in range(n_encoder_blocks)
@@ -107,12 +107,14 @@ class QANet(nn.Module):
         maskC = (torch.zeros_like(Cwid) != Cwid).float()
         maskQ = (torch.zeros_like(Qwid) != Qwid).float()
         Cw, Cc = self.word_emb(Cwid), self.char_emb(Ccid)
+        # (bs, ctxt_len, word_emb_dim=300), (bs, ctxt_len, char_lim, char_emb_dim=64)
         Qw, Qc = self.word_emb(Qwid), self.char_emb(Qcid)
-        C, Q = self.emb(Cc, Cw, self.Lc), self.emb(Qc, Qw, self.Lq)
-        Ce = self.emb_enc(C, maskC, 1, 1)
-        Qe = self.emb_enc(Q, maskQ, 1, 1)
-        X = self.cq_att(Ce, Qe, maskC, maskQ)
-        M0 = self.cq_resizer(X)
+        # (bs, ques_len, word_emb_dim=300), (bs, ctxt_len, ques_len, char_emb_dim=64)
+        C, Q = self.emb(Cc, Cw), self.emb(Qc, Qw)
+        Ce = self.emb_enc(C, maskC, 1, 1) # (bs, d_model, ctxt_len)
+        Qe = self.emb_enc(Q, maskQ, 1, 1) # (bs, d_model, ques_len)
+        X = self.cq_att(Ce, Qe, maskC, maskQ) # (bs, 4 * d_model, ctxt_len)
+        M0 = self.cq_resizer(X) # (bs, d_model, ctxt_len)
         M0 = F.dropout(M0, p=args.qanet_dropout, training=self.training)
         for i, blk in enumerate(self.model_enc_blks):
              M0 = blk(M0, maskC, i*(2+2)+1, self.n_model_enc_blks)

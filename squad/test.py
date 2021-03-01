@@ -26,7 +26,7 @@ from os.path import join
 from tensorboardX import SummaryWriter
 from tqdm import tqdm
 from ujson import load as json_load
-from util import collate_fn, collate_fn_qanet, SQuAD
+from util import collate_fn, SQuAD
 
 
 def main(args):
@@ -65,15 +65,11 @@ def main(args):
     log.info('Building dataset...')
     record_file = vars(args)[f'{args.split}_record_file']
     dataset = SQuAD(record_file, args.use_squad_v2, algo=args.name, test=True)
-    if args.name == 'baseline':
-        collate = collate_fn
-    else:
-        collate = collate_fn_qanet
     data_loader = data.DataLoader(dataset,
                                   batch_size=args.batch_size,
                                   shuffle=False,
                                   num_workers=args.num_workers,
-                                  collate_fn=collate)
+                                  collate_fn=collate_fn)
 
     # Evaluate
     log.info(f'Evaluating on {args.split} split...')

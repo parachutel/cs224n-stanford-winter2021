@@ -153,31 +153,6 @@ def collate_fn(examples):
             question_idxs, question_char_idxs,
             y1s, y2s, ids)
 
-
-def collate_fn_qanet(examples):
-
-    # Group by tensor type
-    context_idxs, context_char_idxs, \
-        question_idxs, question_char_idxs, \
-        y1s, y2s, ids = zip(*examples)
-
-    # Merge into batch tensors
-    context_idxs = torch.stack(context_idxs, dim=0)
-    context_char_idxs = torch.stack(context_char_idxs)
-    question_idxs = torch.stack(question_idxs)
-    question_char_idxs = torch.stack(question_char_idxs)
-    y1s = torch.tensor(y1s)
-    y2s = torch.tensor(y2s)
-    ids = torch.tensor(ids)
-
-    # print('collate_fn_qanet', context_idxs.shape, context_char_idxs.shape,
-    #         question_idxs.shape, question_char_idxs.shape, y1s.shape, y2s.shape)
-
-    return (context_idxs, context_char_idxs,
-            question_idxs, question_char_idxs,
-            y1s, y2s, ids)
-
-
 class AverageMeter:
     """Keep track of average values over time.
 

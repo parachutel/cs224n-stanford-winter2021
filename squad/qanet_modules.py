@@ -9,8 +9,6 @@ Dchar = args.char_dim
 D = args.d_model
 dropout = args.qanet_dropout
 dropout_char = args.qanet_char_dropout
-Lc = args.para_limit + 1
-Lq = args.ques_limit + 1
 
 
 def mask_logits(inputs, mask):
@@ -40,9 +38,8 @@ class Initialized_Conv1d(nn.Module):
 
 
 def PosEncoder(x, min_timescale=1.0, max_timescale=1.0e4):
-    x = x.transpose(1,2)
-    length = x.size()[1]
-    channels = x.size()[2]
+    x = x.transpose(1, 2)
+    length, channels = x.shape[1], x.shape[2]
     signal = get_timing_signal(length, channels, min_timescale, max_timescale)
     if torch.cuda.is_available():
         signal = signal.cuda()
@@ -192,8 +189,7 @@ class Embedding(nn.Module):
         self.conv1d = Initialized_Conv1d(Dword+D, D, bias=False)
         self.high = Highway(2)
 
-    def forward(self, ch_emb, wd_emb, length):
-        N = ch_emb.size()[0]
+    def forward(self, ch_emb, wd_emb):
         ch_emb = ch_emb.permute(0, 3, 1, 2)
         ch_emb = F.dropout(ch_emb, p=dropout_char, training=self.training)
         ch_emb = self.conv2d(ch_emb)
@@ -279,25 +275,30 @@ class CQAttention(nn.Module):
         self.bias = nn.Parameter(bias)
 
     def forward(self, C, Q, Cmask, Qmask):
-        C = C.transpose(1, 2)
-        Q = Q.transpose(1, 2)
-        batch_size_c = C.size()[0]
+        C = C.transpose(1, 2) # after transpose (bs, ctxt_len, d_model)
+        Q = Q.transpose(1, 2)# after transpose (bs, ques_len, d_model)
+        batch_size = C.shape[0]
+        Lc, Lq = C.shape[1], Q.shape[1]
         S = self.trilinear_for_attention(C, Q)
-        Cmask = Cmask.view(batch_size_c, Lc, 1)
-        Qmask = Qmask.view(batch_size_c, 1, Lq)
+        Cmask = Cmask.view(batch_size, Lc, 1)
+        Qmask = Qmask.view(batch_size, 1, Lq)
         S1 = F.softmax(mask_logits(S, Qmask), dim=2)
         S2 = F.softmax(mask_logits(S, Cmask), dim=1)
+        # (bs, ctxt_len, ques_len) x (bs, ques_len, d_model) => (bs, ctxt_len, d_model)
         A = torch.bmm(S1, Q)
+        # (bs, c_len, c_len) x (bs, c_len, hid_size) => (bs, c_len, hid_size)
         B = torch.bmm(torch.bmm(S1, S2.transpose(1, 2)), C)
-        out = torch.cat([C, A, torch.mul(C, A), torch.mul(C, B)], dim=2)
+        out = torch.cat([C, A, torch.mul(C, A), torch.mul(C, B)], dim=2) # (bs, ctxt_len, 4 * d_model)
         return out.transpose(1, 2)
 
     def trilinear_for_attention(self, C, Q):
         C = F.dropout(C, p=dropout, training=self.training)
         Q = F.dropout(Q, p=dropout, training=self.training)
+        Lc, Lq = C.shape[1], Q.shape[1]
         subres0 = torch.matmul(C, self.w4C).expand([-1, -1, Lq])
         subres1 = torch.matmul(Q, self.w4Q).transpose(1, 2).expand([-1, Lc, -1])
         subres2 = torch.matmul(C * self.w4mlu, Q.transpose(1,2))
+        # print('qanet_modules', subres0.shape, subres1.shape, subres2.shape)
         res = subres0 + subres1 + subres2
         res += self.bias
         return res
