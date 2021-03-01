@@ -113,10 +113,6 @@ def get_args():
                         type=int,
                         default=30,
                         help='Number of epochs for which to train. Negative means forever.')
-    parser.add_argument('--drop_prob',
-                        type=float,
-                        default=0.2,
-                        help='Probability of zeroing an activation in dropout layers.')
     parser.add_argument('--metric_name',
                         type=str,
                         default='F1',
@@ -200,6 +196,10 @@ def get_args():
                         type=float,
                         default=0,
                         help='L2 weight decay for baseline.')
+    parser.add_argument('--drop_prob',
+                        type=float,
+                        default=0.2,
+                        help='Probability of zeroing an activation in dropout layers.')
     parser.add_argument('--baseline_use_fusion',
                         type=lambda s: s.lower().startswith('t'),
                         default=True,
