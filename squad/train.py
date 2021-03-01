@@ -50,8 +50,13 @@ def main(args):
     log.info('Building model...')
     if args.name == 'baseline':
         model = BiDAF(word_vectors=word_vectors,
+                      char_vectors=char_vectors,
                       hidden_size=args.hidden_size,
-                      drop_prob=args.drop_prob)
+                      drop_prob=args.qanet_dropout, # word
+                      char_drop_prob=args.qanet_char_dropout,
+                      use_fusion=args.baseline_use_fusion,
+                      use_char_emb=args.baseline_use_char_emb)
+                      
     elif args.name == 'qanet':
         model = QANet(word_mat=word_vectors, 
                       char_mat=char_vectors,

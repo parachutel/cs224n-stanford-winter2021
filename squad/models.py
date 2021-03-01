@@ -33,11 +33,23 @@ class BiDAF(nn.Module):
         hidden_size (int): Number of features in the hidden state at each layer.
         drop_prob (float): Dropout probability.
     """
-    def __init__(self, word_vectors, hidden_size, drop_prob=0.):
+    def __init__(self, word_vectors, char_vectors, hidden_size, 
+                 drop_prob=0., char_drop_prob=0.05,
+                 use_fusion=True, use_char_emb=True):
         super(BiDAF, self).__init__()
-        self.emb = layers.Embedding(word_vectors=word_vectors,
-                                    hidden_size=hidden_size,
-                                    drop_prob=drop_prob)
+
+        self.word_emb = nn.Embedding.from_pretrained(word_vectors)
+        
+        self.use_char_emb = use_char_emb
+        if use_char_emb:
+            self.char_emb = nn.Embedding.from_pretrained(char_vectors)
+        else:
+            self.char_emb = None
+
+        self.emb = layers.Embedding(hidden_size=hidden_size,
+                                    word_drop_prob=drop_prob,
+                                    char_drop_prob=char_drop_prob,
+                                    use_char_emb=use_char_emb)
 
         self.enc = layers.RNNEncoder(input_size=hidden_size,
                                      hidden_size=hidden_size,
@@ -46,6 +58,11 @@ class BiDAF(nn.Module):
 
         self.att = layers.BiDAFAttention(hidden_size=2 * hidden_size,
                                          drop_prob=drop_prob)
+        
+        self.use_fusion = use_fusion
+        if use_fusion:
+            self.fusion = layers.Fusion(input_size=8 * hidden_size,
+                                        output_size=8 * hidden_size)
 
         self.mod = layers.RNNEncoder(input_size=8 * hidden_size,
                                      hidden_size=hidden_size,
@@ -60,14 +77,26 @@ class BiDAF(nn.Module):
         q_mask = torch.zeros_like(qw_idxs) != qw_idxs
         c_len, q_len = c_mask.sum(-1), q_mask.sum(-1)
 
-        c_emb = self.emb(cw_idxs)         # (batch_size, c_len, hidden_size)
-        q_emb = self.emb(qw_idxs)         # (batch_size, q_len, hidden_size)
+        cw_emb = self.word_emb(cw_idxs)
+        qw_emb = self.word_emb(qw_idxs)
 
+        if self.use_char_emb:
+            cc_emb = self.char_emb(cc_idxs)
+            qc_emb = self.char_emb(qc_idxs)
+        else:
+            cc_emb, qc_emb = None, None
+
+        c_emb = self.emb(cw_emb, cc_emb)  # (batch_size, c_len, hidden_size)
+        q_emb = self.emb(qw_emb, qc_emb)  # (batch_size, q_len, hidden_size)
+        
         c_enc = self.enc(c_emb, c_len)    # (batch_size, c_len, 2 * hidden_size)
         q_enc = self.enc(q_emb, q_len)    # (batch_size, q_len, 2 * hidden_size)
 
         att = self.att(c_enc, q_enc,
-                       c_mask, q_mask)    # (batch_size, c_len, 8 * hidden_size)
+                       c_mask, q_mask)    # (batch_size, c_len, 4 * 2 * hidden_size)
+        # print(att.shape)
+        if self.use_fusion:
+            att = self.fusion(att)        # (batch_size, c_len, 4 * 2 * hidden_size)
 
         mod = self.mod(att, c_len)        # (batch_size, c_len, 2 * hidden_size)
 
@@ -109,12 +138,12 @@ class QANet(nn.Module):
         Cw, Cc = self.word_emb(Cwid), self.char_emb(Ccid)
         # (bs, ctxt_len, word_emb_dim=300), (bs, ctxt_len, char_lim, char_emb_dim=64)
         Qw, Qc = self.word_emb(Qwid), self.char_emb(Qcid)
-        # (bs, ques_len, word_emb_dim=300), (bs, ctxt_len, ques_len, char_emb_dim=64)
+        # (bs, ques_len, word_emb_dim=300), (bs, ques_len, char_lim, char_emb_dim=64)
         C, Q = self.emb(Cc, Cw), self.emb(Qc, Qw)
         Ce = self.emb_enc(C, maskC, 1, 1) # (bs, d_model, ctxt_len)
         Qe = self.emb_enc(Q, maskQ, 1, 1) # (bs, d_model, ques_len)
         X = self.cq_att(Ce, Qe, maskC, maskQ) # (bs, 4 * d_model, ctxt_len)
-        M0 = self.cq_resizer(X) # (bs, d_model, ctxt_len)
+        M0 = self.cq_resizer(X) # (bs, d_model, ctxt_len), fusion function
         M0 = F.dropout(M0, p=args.qanet_dropout, training=self.training)
         for i, blk in enumerate(self.model_enc_blks):
              M0 = blk(M0, maskC, i*(2+2)+1, self.n_model_enc_blks)

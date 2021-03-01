@@ -24,19 +24,43 @@ class Embedding(nn.Module):
         hidden_size (int): Size of hidden activations.
         drop_prob (float): Probability of zero-ing out activations
     """
-    def __init__(self, word_vectors, hidden_size, drop_prob):
+    def __init__(self, hidden_size, char_drop_prob=0.05, word_drop_prob=0.1, 
+                 use_char_emb=False):
         super(Embedding, self).__init__()
-        self.drop_prob = drop_prob
-        self.embed = nn.Embedding.from_pretrained(word_vectors)
-        self.proj = nn.Linear(word_vectors.size(1), hidden_size, bias=False)
+        self.use_char_emb = use_char_emb
+        self.char_drop_prob = char_drop_prob
+        self.word_drop_prob = word_drop_prob
+        char_emb_dim = 64
+        word_emb_dim = 300
+        if use_char_emb:
+            self.conv2d = nn.Conv2d(char_emb_dim, hidden_size, 
+                                    kernel_size=(1, 5), padding=0, bias=True)
+            nn.init.kaiming_normal_(self.conv2d.weight, nonlinearity='relu')
+            proj_input_size = hidden_size + word_emb_dim
+        else:
+            proj_input_size = word_emb_dim
+
+        self.proj = nn.Linear(proj_input_size, hidden_size, bias=False)
         self.hwy = HighwayEncoder(2, hidden_size)
 
-    def forward(self, x):
-        emb = self.embed(x)   # (batch_size, seq_len, embed_size)
-        emb = F.dropout(emb, self.drop_prob, self.training)
+    def forward(self, word_emb, char_emb=None):
+        word_emb = F.dropout(word_emb, self.word_drop_prob, self.training)
+        # (bs, seq_len, word_emb_dim)
+        if self.use_char_emb:
+            # (bs, seq_len, char_lim, char_emb_dim)
+            char_emb = char_emb.permute(0, 3, 1, 2) # (bs, char_emb_dim, seq_len, char_lim)
+            char_emb = F.dropout(char_emb, self.char_drop_prob, self.training)
+            char_emb = self.conv2d(char_emb)
+            char_emb = F.relu(char_emb)
+            char_emb, _ = torch.max(char_emb, dim=3)
+            char_emb = char_emb.squeeze()
+            char_emb = char_emb.transpose(1, 2) # (bs, seq_len, hidden_size)
+            emb = torch.cat([char_emb, word_emb], dim=-1)
+        else:
+            emb = word_emb
+        
         emb = self.proj(emb)  # (batch_size, seq_len, hidden_size)
         emb = self.hwy(emb)   # (batch_size, seq_len, hidden_size)
-
         return emb
 
 
@@ -156,7 +180,7 @@ class BiDAFAttention(nn.Module):
         b = torch.bmm(torch.bmm(s1, s2.transpose(1, 2)), c)
 
         x = torch.cat([c, a, c * a, c * b], dim=2)  # (bs, c_len, 4 * hid_size)
-
+        # print(x.shape)
         return x
 
     def get_similarity_matrix(self, c, q):
@@ -183,6 +207,13 @@ class BiDAFAttention(nn.Module):
 
         return s
 
+class Fusion(nn.Module):
+    def __init__(self, input_size, output_size):
+        super().__init__()
+        self.linear = nn.Linear(input_size, output_size)
+    
+    def forward(self, x):
+        return F.relu(self.linear(x))
 
 class BiDAFOutput(nn.Module):
     """Output layer used by BiDAF for question answering.

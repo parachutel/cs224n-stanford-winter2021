@@ -484,6 +484,16 @@ def get_save_dir(args, training, id_max=100):
             'bs={}'.format(args.batch_size),
             'run',
         ])
+    elif name == 'baseline':
+        name = '_'.join([
+            'bidaf',
+            'D={}'.format(args.hidden_size),
+            'charEmb={}'.format(args.baseline_use_char_emb), 
+            'fusion={}'.format(args.baseline_use_fusion),
+            'bs={}'.format(args.batch_size),
+            'run',
+        ])
+
     for uid in range(1, id_max):
         subdir = 'train' if training else 'test'
         save_dir = os.path.join(base_dir, subdir, f'{name}-{uid:02d}')

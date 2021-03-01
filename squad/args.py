@@ -200,6 +200,15 @@ def get_args():
                         type=float,
                         default=0,
                         help='L2 weight decay for baseline.')
+    parser.add_argument('--baseline_use_fusion',
+                        type=lambda s: s.lower().startswith('t'),
+                        default=True,
+                        help='Whether to use a linear fusion function after cq_att.')
+    parser.add_argument('--baseline_use_char_emb',
+                        type=lambda s: s.lower().startswith('t'),
+                        default=True,
+                        help='Whether to use character embedding for baseline.')
+
 
     ############################################################################
     # QANet parameters #########################################################
