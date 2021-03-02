@@ -493,6 +493,19 @@ def get_save_dir(args, training, id_max=100):
             'bs={}'.format(args.batch_size),
             'run',
         ])
+    if name == 'qanetxl':
+        name = '_'.join([
+            'qanetxl',
+            'D={}'.format(args.d_model),
+            'encblk={}'.format(args.n_encoder_blocks),
+            'mlen={}'.format(args.mem_len),
+            'dh={}'.format(args.d_head),
+            'nh={}'.format(args.n_head),
+            'bs={}'.format(args.batch_size),
+            'run',
+        ])
+    else:
+        raise NotImplementedError
 
     for uid in range(1, id_max):
         subdir = 'train' if training else 'test'
