@@ -184,7 +184,7 @@ class Embedding(nn.Module):
     def __init__(self):
         super().__init__()
         self.conv2d = nn.Conv2d(
-            Dchar, D, kernel_size = (1,5), padding=0, bias=True)
+            Dchar, D, kernel_size=(1,5), padding=0, bias=True)
         nn.init.kaiming_normal_(self.conv2d.weight, nonlinearity='relu')
         self.conv1d = Initialized_Conv1d(Dword+D, D, bias=False)
         self.high = Highway(2)

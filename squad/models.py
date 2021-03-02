@@ -155,5 +155,5 @@ class QANet(nn.Module):
         for i, blk in enumerate(self.model_enc_blks):
              M0 = blk(M0, maskC, i*(2+2)+1, self.n_model_enc_blks)
         M3 = M0
-        p1, p2 = self.out(M1, M2, M3, maskC)
+        p1, p2 = self.out(M1, M2, M3, maskC) # (bs, ctxt_len)
         return p1, p2

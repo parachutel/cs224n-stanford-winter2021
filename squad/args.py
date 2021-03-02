@@ -107,7 +107,7 @@ def get_args():
     # Train
     parser.add_argument('--eval_steps',
                         type=int,
-                        default=10000,
+                        default=20000,
                         help='Number of steps between successive evaluations.')
     parser.add_argument('--num_epochs',
                         type=int,
@@ -248,8 +248,18 @@ def get_args():
                         type=lambda s: s.lower().startswith('t'),
                         default=True,
                         help='Whether to use pretrained character embeddings.')
+    
     ############################################################################
+    # QANet-XL parameters ######################################################
     ############################################################################
+    parser.add_argument('--mem_len',
+                        type=int,
+                        default=80,
+                        help='Length of memory segments')
+    parser.add_argument('--d_head',
+                        type=int,
+                        default=16,
+                        help='Dimension of att. head of RelPartialLearnableMultiHeadAttn.')
 
     args = parser.parse_args()
     if args.metric_name == 'NLL':

@@ -19,6 +19,7 @@ from args import args
 from collections import OrderedDict
 from json import dumps
 from models import BiDAF, QANet
+from qanet_xl_model import QANetXL
 from tensorboardX import SummaryWriter
 from tqdm import tqdm
 from ujson import load as json_load
@@ -56,14 +57,22 @@ def main(args):
                       char_drop_prob=args.qanet_char_dropout,
                       use_fusion=args.baseline_use_fusion,
                       use_char_emb=args.baseline_use_char_emb)
-                      
+
     elif args.name == 'qanet':
         model = QANet(word_mat=word_vectors, 
                       char_mat=char_vectors,
                       n_encoder_blocks=args.n_encoder_blocks,
                       n_head=args.n_head)
+    elif args.name == 'qanetxl':
+        model = QANetXL(word_vectors=word_vectors, 
+                        char_vectors=char_vectors, 
+                        mem_len=args.mem_len,
+                        d_model=args.d_model, 
+                        d_head=args.d_head, 
+                        num_head=args.n_head)
     else:
         raise NotImplementedError
+    
     model = nn.DataParallel(model, args.gpu_ids)
     if args.load_path:
         log.info(f'Loading checkpoint from {args.load_path}...')
