@@ -101,7 +101,7 @@ class QANetXL(nn.Module):
                 mask_shift_len = qlen - mask_len
             else:
                 mask_shift_len = qlen
-            dec_attn_mask = (torch.triu(all_ones, 1+mlen)
+            dec_attn_mask = (torch.triu(all_ones, 1 + mlen)
                     + torch.tril(all_ones, -mask_shift_len)).byte()[:, :, None] # -1
         else:
             dec_attn_mask = torch.triu(

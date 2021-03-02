@@ -254,7 +254,7 @@ def get_args():
     ############################################################################
     parser.add_argument('--mem_len',
                         type=int,
-                        default=80,
+                        default=128,
                         help='Length of memory segments')
     parser.add_argument('--d_head',
                         type=int,
