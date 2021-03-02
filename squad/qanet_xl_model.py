@@ -176,7 +176,7 @@ class QANetXL(nn.Module):
 
         bs, seq_len = Cword.shape[0], Cword.shape[1]
 
-        n_segments = seq_len // self.mem_len + 1
+        n_segments = seq_len // self.mem_len + 1 * (seq_len % self.mem_len > 0)
 
         M1_collection = []
         M2_collection = []
