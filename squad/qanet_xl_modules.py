@@ -78,20 +78,22 @@ class RelPartialLearnableMultiHeadAttn(RelMultiHeadAttn):
         self.r_net = nn.Linear(self.d_model, self.n_head * self.d_head, bias=False)
 
     def forward(self, w, mask, r, r_w_bias, r_r_bias, attn_mask=None, mems=None):
-        w = w.permute(2, 0, 1)
-        #print(w.size())
+        # mems.shape = (mem_len, bs, d_model)
+        w = w.permute(2, 0, 1) # (seq_len, bs, d_model)
         qlen, rlen, bsz = w.size(0), r.size(0), w.size(1)
 
         if mems is not None:
-            cat = torch.cat([mems, w], 0)
+            cat = torch.cat([mems, w], 0) # (mem_len + seq_len, bs, d_model)
             if self.pre_lnorm:
                 w_heads = self.qkv_net(self.layer_norm(cat))
             else:
-                w_heads = self.qkv_net(cat)
+                w_heads = self.qkv_net(cat) # (mem_len + seq_len, bs, 3 * n_head * d_head)
             r_head_k = self.r_net(r)
 
-            w_head_q, w_head_k, w_head_v = torch.chunk(w_heads, 3, dim=-1)
+            w_head_q, w_head_k, w_head_v = torch.chunk(w_heads, 3, dim=-1) 
+            # (mem_len + seq_len, bs, n_head * d_head)
             w_head_q = w_head_q[-qlen:]
+            # (seq_len, bs, n_head * d_head)
         else:
             if self.pre_lnorm:
                 w_heads = self.qkv_net(self.layer_norm(w))
@@ -100,12 +102,14 @@ class RelPartialLearnableMultiHeadAttn(RelMultiHeadAttn):
             r_head_k = self.r_net(r)
 
             w_head_q, w_head_k, w_head_v = torch.chunk(w_heads, 3, dim=-1)
-
-        klen = w_head_k.size(0)
+        
+        # r_head_k.shape = 
+        klen = w_head_k.size(0) # klen = mem_len + seq_len
+        # print('qanet_xl_modules', klen)
 
         w_head_q = w_head_q.view(qlen, bsz, self.n_head, self.d_head)           # qlen x bsz x n_head x d_head
-        w_head_k = w_head_k.view(klen, bsz, self.n_head, self.d_head)           # qlen x bsz x n_head x d_head
-        w_head_v = w_head_v.view(klen, bsz, self.n_head, self.d_head)           # qlen x bsz x n_head x d_head
+        w_head_k = w_head_k.view(klen, bsz, self.n_head, self.d_head)           # klen x bsz x n_head x d_head
+        w_head_v = w_head_v.view(klen, bsz, self.n_head, self.d_head)           # klen x bsz x n_head x d_head
 
         r_head_k = r_head_k.view(rlen, self.n_head, self.d_head)                # qlen x n_head x d_head
 
@@ -116,6 +120,15 @@ class RelPartialLearnableMultiHeadAttn(RelMultiHeadAttn):
         rr_head_q = w_head_q + r_r_bias
         BD = torch.einsum('ibnd,jnd->ijbn', (rr_head_q, r_head_k))              # qlen x klen x bsz x n_head
         BD = self._rel_shift(BD)
+
+        # print('rw_head_q', rw_head_q.shape) # (qlen, bs, n_head, d_head)
+        # print('w_head_k', w_head_k.shape) # (klen, bs, n_head, d_head)
+        # print('rr_head_q', rr_head_q.shape) # (klen, bs, n_head, d_head)
+        # print('r_head_k', r_head_k.shape) # (rlen, n_head, d_head)
+        # print('qanet_xl_modules AC BD', AC.shape, BD.shape) 
+        # AC (qken, klen, n_head, d_head)
+        # BD (qken, rlen, n_head, d_head)
+        # requires klen = rlen
 
         # [qlen x klen x bsz x n_head]
         attn_score = AC + BD
@@ -269,9 +282,9 @@ class Embedding(nn.Module):
     Question: Linear/Conv1d layer before or after highway?
     """
 
-    def __init__(self, p1, p2, hidden_size, dropout_w = 0.1, dropout_c = 0.05):
+    def __init__(self, p1, p2, hidden_size, dropout_w=0.1, dropout_c=0.05):
         super(Embedding, self).__init__()
-        self.conv2d = nn.Conv2d(p2, hidden_size, kernel_size = (1,5), padding=0, bias=True)
+        self.conv2d = nn.Conv2d(p2, hidden_size, kernel_size=(1,5), padding=0, bias=True)
         nn.init.kaiming_normal_(self.conv2d.weight, nonlinearity='relu')
         self.conv1d = Initialized_Conv1d(p1 + hidden_size, hidden_size, bias=False)
         self.high = HighwayEncoder(2, hidden_size)
@@ -400,8 +413,9 @@ class Encoder(nn.Module):
         out = F.dropout(out, p=dropout, training=self.training)
         #print(out)
         
+        # mems.shape = (mem_len, bs, d_model)
         out = self.att(out, mask, r, r_w_bias, r_r_bias, attn_mask=dec_attn_mask, mems=mems)
-        out = out.permute(1,2, 0)
+        out = out.permute(1, 2, 0)
         #out = self.att(out, mask)
         out = self.res_drop(out, res, dropout*float(l)/total_layers)
         l += 1

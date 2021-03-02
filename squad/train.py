@@ -63,6 +63,7 @@ def main(args):
                       char_mat=char_vectors,
                       n_encoder_blocks=args.n_encoder_blocks,
                       n_head=args.n_head)
+                      
     elif args.name == 'qanetxl':
         model = QANetXL(word_vectors=word_vectors, 
                         char_vectors=char_vectors, 
