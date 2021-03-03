@@ -54,8 +54,8 @@ class QANetXL(nn.Module):
     def _create_parameters(self):
         self.pos_emb = layers.PositionalEmbedding(self.d_model)
         self.r_w_bias = nn.Parameter(torch.Tensor(self.num_head, self.d_head))
-        self.r_r_bias = nn.Parameter(torch.Tensor(self.num_head, self.d_head))        
-
+        self.r_r_bias = nn.Parameter(torch.Tensor(self.num_head, self.d_head))
+    
     def init_mems(self, n_layers):
         if self.mem_len > 0:
             mems = []
@@ -160,57 +160,98 @@ class QANetXL(nn.Module):
 
         return core_out    
         
-    def forward(self, Cword, Cchar, Qword, Qchar):
-        maskC = (torch.ones_like(Cword) * self.pad != Cword).float()
-        maskQ = (torch.ones_like(Qword) * self.pad != Qword).float()
+    # def forward(self, Cword, Cchar, Qword, Qchar):
+    #     maskC = (torch.ones_like(Cword) * self.pad != Cword).float()
+    #     maskQ = (torch.ones_like(Qword) * self.pad != Qword).float()
 
-        Qw, Qc = self.word_emb(Qword), self.char_emb(Qchar)
-        Q = self.emb(Qc, Qw)
-        Qe = self.qanet_emb_enc(Q, maskQ, 1, 1) # (bs, d_model, ques_len)
+    #     Qw, Qc = self.word_emb(Qword), self.char_emb(Qchar)
+    #     Q = self.emb(Qc, Qw)
+    #     Qe = self.qanet_emb_enc(Q, maskQ, 1, 1) # (bs, d_model, ques_len)
 
-        bs, seq_len = Cword.shape[0], Cword.shape[1]
+    #     bs, seq_len = Cword.shape[0], Cword.shape[1]
 
-        n_segments = seq_len // self.mem_len + 1 * (seq_len % self.mem_len > 0)
+    #     n_segments = seq_len // self.mem_len + 1 * (seq_len % self.mem_len > 0)
 
-        M1_collection = []
-        M2_collection = []
-        M3_collection = []
+    #     M1_collection = []
+    #     M2_collection = []
+    #     M3_collection = []
 
-        memC = None
-        mem0, mem1, mem2 = None, None, None
+    #     memC = None
+    #     mem0, mem1, mem2 = None, None, None
         
-        for i_seg in range(n_segments):
+    #     for i_seg in range(n_segments):
 
-            Cword_seg = Cword[:, i_seg * self.mem_len : (i_seg + 1) * self.mem_len]
-            Cchar_seg = Cchar[:, i_seg * self.mem_len : (i_seg + 1) * self.mem_len]
-            maskC_seg = (torch.ones_like(Cword_seg) * self.pad != Cword_seg).float()
+    #         Cword_seg = Cword[:, i_seg * self.mem_len : (i_seg + 1) * self.mem_len]
+    #         Cchar_seg = Cchar[:, i_seg * self.mem_len : (i_seg + 1) * self.mem_len]
+    #         maskC_seg = (torch.ones_like(Cword_seg) * self.pad != Cword_seg).float()
 
-            Cw_seg, Cc_seg = self.word_emb(Cword_seg), self.char_emb(Cchar_seg)
-            C_seg = self.emb(Cc_seg, Cw_seg)
+    #         Cw_seg, Cc_seg = self.word_emb(Cword_seg), self.char_emb(Cchar_seg)
+    #         C_seg = self.emb(Cc_seg, Cw_seg)
 
-            # print('qanet_xl_model', i_seg, C_seg.shape, memC.shape if memC is not None else None)
-            Ce_seg = self._forwardEmb(C_seg, maskC_seg, mem=memC)
-            X = self.cq_att(Ce_seg, Qe, maskC_seg, maskQ)
+    #         # print('qanet_xl_model', i_seg, C_seg.shape, memC.shape if memC is not None else None)
+    #         Ce_seg = self._forwardEmb(C_seg, maskC_seg, mem=memC)
+    #         X = self.cq_att(Ce_seg, Qe, maskC_seg, maskQ)
             
-            M0 = self.cq_resizer(X)
-            M0 = F.dropout(M0, self.dropout, self.training)
+    #         M0 = self.cq_resizer(X)
+    #         M0 = F.dropout(M0, self.dropout, self.training)
 
-            M1 = self._forwardEnc(M0, maskC_seg, mem=mem0)
-            M1_collection.append(M1)
-            M2 = self._forwardEnc(M1, maskC_seg, mem=mem1)
-            M2_collection.append(M2)
-            M3 = self._forwardEnc(M2, maskC_seg, mem=mem2)
-            M3_collection.append(M3)
+    #         M1 = self._forwardEnc(M0, maskC_seg, mem=mem0)
+    #         M1_collection.append(M1)
+    #         M2 = self._forwardEnc(M1, maskC_seg, mem=mem1)
+    #         M2_collection.append(M2)
+    #         M3 = self._forwardEnc(M2, maskC_seg, mem=mem2)
+    #         M3_collection.append(M3)
 
-            with torch.no_grad():
-                memC = Ce_seg.permute(2, 0, 1)
-                mem0 = M0.permute(2, 0, 1)
-                mem1 = M1.permute(2, 0, 1)
-                mem2 = M2.permute(2, 0, 1)
+    #         with torch.no_grad():
+    #             memC = Ce_seg.permute(2, 0, 1)
+    #             mem0 = M0.permute(2, 0, 1)
+    #             mem1 = M1.permute(2, 0, 1)
+    #             mem2 = M2.permute(2, 0, 1)
         
-        M1 = torch.cat(M1_collection, dim=-1)
-        M2 = torch.cat(M2_collection, dim=-1)
-        M3 = torch.cat(M3_collection, dim=-1)
+    #     M1 = torch.cat(M1_collection, dim=-1)
+    #     M2 = torch.cat(M2_collection, dim=-1)
+    #     M3 = torch.cat(M3_collection, dim=-1)
 
+    #     p1, p2 = self.out(M1, M2, M3, maskC)
+    #     return p1, p2
+    
+    def forward(self, Cword, Cchar, Qword, Qchar, *mems):
+        """
+        """
+        maskC = (torch.ones_like(Cword) *
+                 self.pad != Cword).float()
+        maskQ = (torch.ones_like(Qword) *
+                 self.pad != Qword).float()
+        
+        memsC, memsQ, memsA = mems
+        if not memsC: memsC = self.init_mems(2)
+        if not memsQ: memsQ = self.init_mems(2)
+        if not memsA: memsA = self.init_mems(8)
+        
+        
+        Cw, Cc = self.word_emb(Cword), self.char_emb(Cchar)
+        Qw, Qc = self.word_emb(Qword), self.char_emb(Qchar)
+        #print(Cw)
+        C, Q = self.emb(Cc, Cw, self.LC), self.emb(Qc, Qw, self.LQ)
+        #print(C)
+        #print(C.size())
+        #print(Q.size())
+
+        Ce, memsC  = self._forwardEmb(C, maskC,  mems=memsC)
+        #print(Ce)
+        Qe, memsQ  = self._forwardEmb(Q, maskQ,  mems=memsQ)
+
+        X = self.cq_att(Ce, Qe, maskC, maskQ)
+        M0 = self.cq_resizer(X)
+        M0 = F.dropout(M0, p=self.dropout, training=self.training)
+        #print(M0)
+        
+        M1, memsA = self._forwardEnc(M0, maskC, mems=memsA)
+        #print(M1)
+        M2, memsA = self._forwardEnc(M1, maskC, mems=memsA)
+        #print(M2)        
+        M3, memsA = self._forwardEnc(M2, maskC, mems=memsA)
+        #print(M2)
+        
         p1, p2 = self.out(M1, M2, M3, maskC)
-        return p1, p2
+        return p1, p2, (memsC, memsQ, memsA)
