@@ -32,7 +32,12 @@ import glob
 
 def main(args):
     # Set up logging
-    args.save_dir = util.get_save_dir(args, training=False)
+    if args.split == 'test' and args.ensemble_mode:
+        if args.save_dir == './save/':
+            print('Error: --save_dir must point to an existing ensemble dev eval folder.')
+            exit()
+    else:
+        args.save_dir = util.get_save_dir(args, training=False)
     log = util.get_logger(args.save_dir, args.name)
     log.info(f'Args: {dumps(vars(args), indent=4, sort_keys=True)}')
     device, gpu_ids = util.get_available_devices()
@@ -150,9 +155,22 @@ def main(args):
                            num_visuals=args.num_visuals)
 
         if args.ensemble_mode:
-            F1 = results['F1']
-            EM = results['EM']
-            args.sub_file = f'ensumble_{step}_F1=({F1:05.2f})_EM=({EM:05.2f}).csv'
+            if args.split == 'dev':
+                F1 = results['F1']
+                EM = results['EM'] 
+            else: # test
+                # filter away standard csv file and test csv file
+                dev_csv_paths = glob.glob(args.save_dir + '/val_e*.csv')
+                if len(dev_csv_paths) == 0:
+                    print('You have to run dev ensemble before running test ensemble!')
+                    exit()
+                for dev_csv_path in dev_csv_paths:
+                    path_str_list = dev_csv_path.split('(')
+                    if step == int(path_str_list[-3][-7]):
+                        F1 = float(path_str_list[-2][:5])
+                        EM = float(path_str_list[-1][:5])
+
+            args.sub_file = f'ensemble_{step}_F1=({F1:05.2f})_EM=({EM:05.2f}).csv'
 
         # Write submission file
         if args.split == 'dev':

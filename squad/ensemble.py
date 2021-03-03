@@ -58,7 +58,6 @@ class VotingEnsemble:
                 final_pred_id = max_count_idxs[idx_max_score_in_count_tie]
             else:
                 final_pred_id = max_count_idxs[0]
-            
             self.vote_dict[uuid] = preds[final_pred_id]
     
         with open(self.save_path, 'w', newline='', encoding='utf-8') as csv_fh:
@@ -69,8 +68,9 @@ class VotingEnsemble:
         
 
 if __name__ == '__main__':
-    exp_names = ['qanet_D=96_encblk=5_head=6_bs=32_run-01-dev-F1-67.98-EM 64.27',
+    exp_names = ['qanet_D=128_encblk=7_head=8_bs=24_run-04-dev-ensemble',
+                 'qanet_D=96_encblk=5_head=6_bs=32_run-01-dev-F1-67.98-EM 64.27',
                  'qanet_D=128_encblk=7_head=8_bs=24_run-01-dev-F1-70.38-EM-66.81',
-                 'qanet_D=128_encblk=7_head=8_bs=24_run-02-dev-F1-70.40-EM-66.85']
+                 'qanet_D=128_encblk=7_head=8_bs=24_run-01-dev-ensemble']
     voting_ensemble = VotingEnsemble(exp_names)
     voting_ensemble.ensemble()
