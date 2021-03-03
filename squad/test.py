@@ -142,6 +142,9 @@ def main(args):
                        split=args.split,
                        num_visuals=args.num_visuals)
 
+    if args.ensemble_mode:
+        args.sub_file = f'ensumble_F1=({results['F1']:05.2f})_EM=({results['EM']:05.2f}).csv'
+
     # Write submission file
     if args.split == 'dev':
         split_name = 'val'

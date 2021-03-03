@@ -145,6 +145,10 @@ def get_args():
                         type=str,
                         default='submission.csv',
                         help='Name for submission file.')
+    parser.add_argument('--ensemble_mode',
+                        type=lambda s: s.lower().startswith('t'),
+                        default=False,
+                        help='Whether record scores in csv file.')
 
         
     # Meta
