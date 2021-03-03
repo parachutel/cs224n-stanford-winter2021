@@ -166,7 +166,7 @@ def main(args):
                     exit()
                 for dev_csv_path in dev_csv_paths:
                     path_str_list = dev_csv_path.split('(')
-                    if step == int(path_str_list[-3][-7]):
+                    if step == int(path_str_list[-3][-7:]):
                         F1 = float(path_str_list[-2][:5])
                         EM = float(path_str_list[-1][:5])
 
