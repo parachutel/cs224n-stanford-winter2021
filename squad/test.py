@@ -28,6 +28,7 @@ from tqdm import tqdm
 from ujson import load as json_load
 from util import collate_fn, SQuAD
 
+import glob
 
 def main(args):
     # Set up logging
@@ -61,10 +62,6 @@ def main(args):
         raise NotImplementedError
 
     model = nn.DataParallel(model, gpu_ids)
-    log.info(f'Loading checkpoint from {args.load_path}...')
-    model = util.load_model(model, args.load_path, gpu_ids, return_step=False)
-    model = model.to(device)
-    model.eval()
 
     # Get data loader
     log.info('Building dataset...')
@@ -76,88 +73,107 @@ def main(args):
                                   num_workers=args.num_workers,
                                   collate_fn=collate_fn)
 
-    # Evaluate
-    log.info(f'Evaluating on {args.split} split...')
-    nll_meter = util.AverageMeter()
-    pred_dict = {}  # Predictions for TensorBoard
-    sub_dict = {}   # Predictions for submission
-    eval_file = vars(args)[f'{args.split}_eval_file']
-    with open(eval_file, 'r') as fh:
-        gold_dict = json_load(fh)
-    with torch.no_grad(), \
-            tqdm(total=len(dataset)) as progress_bar:
-        for cw_idxs, cc_idxs, qw_idxs, qc_idxs, y1, y2, ids in data_loader:
-            # Setup for forward
-            cw_idxs = cw_idxs.to(device)
-            qw_idxs = qw_idxs.to(device)
-            cc_idxs = cc_idxs.to(device)
-            qc_idxs = qc_idxs.to(device)
+    
+    def eval_and_save_preds(args, load_path, model, gpu_ids, data_loader):
+        log.info(f'Loading checkpoint from {load_path}...')
+        if args.ensemble_mode:
+            model, step = util.load_model(model, load_path, gpu_ids, return_step=True)
+        else:
+            model = util.load_model(model, load_path, gpu_ids, return_step=False)
+        model = model.to(device)
+        model.eval()
 
-            batch_size = cw_idxs.size(0)
+        # Evaluate
+        log.info(f'Evaluating on {args.split} split...')
+        nll_meter = util.AverageMeter()
+        pred_dict = {}  # Predictions for TensorBoard
+        sub_dict = {}   # Predictions for submission
+        eval_file = vars(args)[f'{args.split}_eval_file']
+        with open(eval_file, 'r') as fh:
+            gold_dict = json_load(fh)
+        with torch.no_grad(), \
+                tqdm(total=len(dataset)) as progress_bar:
+            for cw_idxs, cc_idxs, qw_idxs, qc_idxs, y1, y2, ids in data_loader:
+                # Setup for forward
+                cw_idxs = cw_idxs.to(device)
+                qw_idxs = qw_idxs.to(device)
+                cc_idxs = cc_idxs.to(device)
+                qc_idxs = qc_idxs.to(device)
 
-            # Forward
-            log_p1, log_p2 = model(cw_idxs, cc_idxs, qw_idxs, qc_idxs)
-            y1, y2 = y1.to(device), y2.to(device)
-            loss = F.nll_loss(log_p1, y1) + F.nll_loss(log_p2, y2)
-            nll_meter.update(loss.item(), batch_size)
+                batch_size = cw_idxs.size(0)
 
-            # Get F1 and EM scores
-            p1, p2 = log_p1.exp(), log_p2.exp()
-            starts, ends = util.discretize(p1, p2, args.max_ans_len, args.use_squad_v2)
+                # Forward
+                log_p1, log_p2 = model(cw_idxs, cc_idxs, qw_idxs, qc_idxs)
+                y1, y2 = y1.to(device), y2.to(device)
+                loss = F.nll_loss(log_p1, y1) + F.nll_loss(log_p2, y2)
+                nll_meter.update(loss.item(), batch_size)
 
-            # Log info
-            progress_bar.update(batch_size)
-            if args.split != 'test':
-                # No labels for the test set, so NLL would be invalid
-                progress_bar.set_postfix(NLL=nll_meter.avg)
+                # Get F1 and EM scores
+                p1, p2 = log_p1.exp(), log_p2.exp()
+                starts, ends = util.discretize(p1, p2, args.max_ans_len, args.use_squad_v2)
 
-            idx2pred, uuid2pred = util.convert_tokens(gold_dict,
-                                                      ids.tolist(),
-                                                      starts.tolist(),
-                                                      ends.tolist(),
-                                                      args.use_squad_v2)
-            pred_dict.update(idx2pred)
-            sub_dict.update(uuid2pred)
+                # Log info
+                progress_bar.update(batch_size)
+                if args.split != 'test':
+                    # No labels for the test set, so NLL would be invalid
+                    progress_bar.set_postfix(NLL=nll_meter.avg)
 
-    # Log results (except for test set, since it does not come with labels)
-    if args.split != 'test':
-        results = util.eval_dicts(gold_dict, pred_dict, args.use_squad_v2)
-        results_list = [('NLL', nll_meter.avg),
-                        ('F1', results['F1']),
-                        ('EM', results['EM'])]
-        if args.use_squad_v2:
-            results_list.append(('AvNA', results['AvNA']))
-        results = OrderedDict(results_list)
+                idx2pred, uuid2pred = util.convert_tokens(gold_dict,
+                                                          ids.tolist(),
+                                                          starts.tolist(),
+                                                          ends.tolist(),
+                                                          args.use_squad_v2)
+                pred_dict.update(idx2pred)
+                sub_dict.update(uuid2pred)
 
-        # Log to console
-        results_str = ', '.join(f'{k}: {v:05.2f}' for k, v in results.items())
-        log.info(f'{args.split.title()} {results_str}')
+        # Log results (except for test set, since it does not come with labels)
+        if args.split != 'test':
+            results = util.eval_dicts(gold_dict, pred_dict, args.use_squad_v2)
+            results_list = [('NLL', nll_meter.avg),
+                            ('F1', results['F1']),
+                            ('EM', results['EM'])]
+            if args.use_squad_v2:
+                results_list.append(('AvNA', results['AvNA']))
+            results = OrderedDict(results_list)
 
-        # Log to TensorBoard
-        tbx = SummaryWriter(args.save_dir)
-        util.visualize(tbx,
-                       pred_dict=pred_dict,
-                       eval_path=eval_file,
-                       step=0,
-                       split=args.split,
-                       num_visuals=args.num_visuals)
+            # Log to console
+            results_str = ', '.join(f'{k}: {v:05.2f}' for k, v in results.items())
+            log.info(f'{args.split.title()} {results_str}')
 
+            # Log to TensorBoard
+            tbx = SummaryWriter(args.save_dir)
+            util.visualize(tbx,
+                           pred_dict=pred_dict,
+                           eval_path=eval_file,
+                           step=0,
+                           split=args.split,
+                           num_visuals=args.num_visuals)
+
+        if args.ensemble_mode:
+            F1 = results['F1']
+            EM = results['EM']
+            args.sub_file = f'ensumble_{step}_F1=({F1:05.2f})_EM=({EM:05.2f}).csv'
+
+        # Write submission file
+        if args.split == 'dev':
+            split_name = 'val'
+        else:
+            split_name = args.split
+        sub_path = join(args.save_dir, split_name + '_' + args.sub_file)
+        log.info(f'Writing submission file to {sub_path}...')
+        with open(sub_path, 'w', newline='', encoding='utf-8') as csv_fh:
+            csv_writer = csv.writer(csv_fh, delimiter=',')
+            csv_writer.writerow(['Id', 'Predicted'])
+            for uuid in sorted(sub_dict):
+                csv_writer.writerow([uuid, sub_dict[uuid]])
+
+    
     if args.ensemble_mode:
-        args.sub_file = f'ensumble_F1=({results['F1']:05.2f})_EM=({results['EM']:05.2f}).csv'
-
-    # Write submission file
-    if args.split == 'dev':
-        split_name = 'val'
+        model_paths = glob.glob(args.load_path + '*.tar')
+        for model_path in model_paths:
+            eval_and_save_preds(args, model_path, model, gpu_ids, data_loader)
     else:
-        split_name = args.split
-    sub_path = join(args.save_dir, split_name + '_' + args.sub_file)
-    log.info(f'Writing submission file to {sub_path}...')
-    with open(sub_path, 'w', newline='', encoding='utf-8') as csv_fh:
-        csv_writer = csv.writer(csv_fh, delimiter=',')
-        csv_writer.writerow(['Id', 'Predicted'])
-        for uuid in sorted(sub_dict):
-            csv_writer.writerow([uuid, sub_dict[uuid]])
-
+        eval_and_save_preds(args, args.load_path, model, gpu_ids, data_loader)
 
 if __name__ == '__main__':
     main(args) 
