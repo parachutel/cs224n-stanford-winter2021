@@ -71,6 +71,7 @@ def main(args):
                         d_model=args.d_model, 
                         d_head=args.d_head, 
                         num_head=args.n_head)
+        mems = (tuple(), tuple(), tuple())
     else:
         raise NotImplementedError
     
@@ -104,8 +105,12 @@ def main(args):
         lr = args.qanet_lr
         lr_warm_up_num = args.lr_warm_up_num
         # Optimizer
-        optimizer = optim.Adam(lr=base_lr, betas=(0.9, 0.999), eps=1e-7, 
-                               weight_decay=5e-8, params=parameters)
+        if args.name == 'qanet':
+            optimizer = optim.Adam(lr=base_lr, betas=(0.9, 0.999), eps=1e-7, 
+                                   weight_decay=5e-8, params=parameters)
+        elif args.name == 'qanetxl':
+            optimizer = optim.Adam(lr=0.00025, betas=(0.8, 0.999), eps=1e-8, 
+                                   weight_decay=3e-7, params=parameters)
         # LR scheduler
         cr = lr / math.log2(lr_warm_up_num)
         scheduler = optim.lr_scheduler.LambdaLR(optimizer,
@@ -151,7 +156,10 @@ def main(args):
                 optimizer.zero_grad()
 
                 # Forward
-                log_p1, log_p2 = model(cw_idxs, cc_idxs, qw_idxs, qc_idxs)
+                if args.name == 'qanetxl':
+                    log_p1, log_p2, mems = model(cw_idxs, cc_idxs, qw_idxs, qc_idxs, *mems)
+                else:
+                    log_p1, log_p2 = model(cw_idxs, cc_idxs, qw_idxs, qc_idxs)
 
                 y1, y2 = y1.to(device), y2.to(device)
 
@@ -208,6 +216,9 @@ def main(args):
 
 
 def evaluate(model, data_loader, device, eval_file, max_len, use_squad_v2, algo_name):
+    if algo_name == 'qanetxl':
+        mems = (tuple(), tuple(), tuple())
+
     nll_meter = util.AverageMeter()
 
     model.eval()
@@ -223,7 +234,10 @@ def evaluate(model, data_loader, device, eval_file, max_len, use_squad_v2, algo_
             batch_size = cw_idxs.size(0)
 
             # Forward
-            log_p1, log_p2 = model(cw_idxs, cc_idxs, qw_idxs, qc_idxs)
+            if args.name == 'qanetxl':
+                log_p1, log_p2, mems = model(cw_idxs, cc_idxs, qw_idxs, qc_idxs, *mems)
+            else:
+                log_p1, log_p2 = model(cw_idxs, cc_idxs, qw_idxs, qc_idxs)
 
             y1, y2 = y1.to(device), y2.to(device)
             loss = F.nll_loss(log_p1, y1) + F.nll_loss(log_p2, y2)

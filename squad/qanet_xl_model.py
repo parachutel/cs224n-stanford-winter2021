@@ -52,10 +52,10 @@ class QANetXL(nn.Module):
         self._create_parameters()
 
     def _create_parameters(self):
-        self.pos_emb = layers.PositionalEmbedding(self.d_model)
-        self.r_w_bias = nn.Parameter(torch.Tensor(self.num_head, self.d_head))
-        self.r_r_bias = nn.Parameter(torch.Tensor(self.num_head, self.d_head))
-    
+            self.pos_emb = layers.PositionalEmbedding(self.d_model)
+            self.r_w_bias = nn.Parameter(torch.Tensor(self.num_head, self.d_head))
+            self.r_r_bias = nn.Parameter(torch.Tensor(self.num_head, self.d_head))        
+
     def init_mems(self, n_layers):
         if self.mem_len > 0:
             mems = []
@@ -85,14 +85,14 @@ class QANetXL(nn.Module):
             end_idx = mlen + max(0, qlen - 0 - self.ext_len)
             beg_idx = max(0, end_idx - self.mem_len)
             for i in range(len(hids)):
-                cat = torch.cat([mems[i], hids[i].permute(2, 0, 1)], dim=0)
+                cat = torch.cat([mems[i], hids[i].permute(2,0,1)], dim=0)
                 new_mems.append(cat[beg_idx:end_idx].detach())
 
             return new_mems
 
-    def _forwardEmb(self, word_emb, mask, mem=None):
+    def _forwardEmb(self, word_emb, mask, mems=None):
         bsz, d_model, qlen = word_emb.size()
-        mlen = mem.shape[0] if mem is not None else 0
+        mlen = mems[0].size(0) if mems is not None else 0
         klen = mlen + qlen
         
         if not self.training:
@@ -102,31 +102,36 @@ class QANetXL(nn.Module):
                 mask_shift_len = qlen - mask_len
             else:
                 mask_shift_len = qlen
-            dec_attn_mask = (torch.triu(all_ones, 1 + mlen)
+            dec_attn_mask = (torch.triu(all_ones, 1+mlen)
                     + torch.tril(all_ones, -mask_shift_len)).byte()[:, :, None] # -1
         else:
             dec_attn_mask = torch.triu(
-                word_emb.new_ones(qlen, klen), diagonal=1 + mlen).byte()[:,:,None]
+                word_emb.new_ones(qlen, klen), diagonal=1+mlen).byte()[:,:,None]
 
+        hids = []
         pos_seq = torch.arange(klen-1, -1, -1.0, device=word_emb.device, 
-                               dtype=word_emb.dtype)
+                                   dtype=word_emb.dtype)
         if self.clamp_len > 0:
             pos_seq.clamp_(max=self.clamp_len)
-        
         pos_emb = self.pos_emb(pos_seq)
         core_out = self.drop(word_emb)
-        # pos_emb = self.drop(pos_emb)
+        pos_emb = self.drop(pos_emb)
         
+        hids.append(core_out)
+        mems_i = None if mems is None else mems[1]
         core_out = self.emb_enc(core_out, mask, 1, 1, pos_emb, self.r_w_bias, 
-            self.r_r_bias, dec_attn_mask=dec_attn_mask, mems=mem)
+            self.r_r_bias, dec_attn_mask=dec_attn_mask, mems=mems_i)
+        hids.append(core_out)
         core_out = self.drop(core_out)
 
-        return core_out
+        new_mems = self._update_mems(hids, mems, mlen, qlen)
 
-    def _forwardEnc(self, word_emb, mask, mem=None):
+        return core_out, new_mems
+
+    def _forwardEnc(self, word_emb, mask, mems=None):
         bsz, d_model, qlen = word_emb.size()
 
-        mlen = mem.shape[0] if mem is not None else 0
+        mlen = mems[0].size(0) if mems is not None else 0
         klen = mlen + qlen
 
         if not self.training: #same_length
@@ -136,30 +141,104 @@ class QANetXL(nn.Module):
                 mask_shift_len = qlen - mask_len
             else:
                 mask_shift_len = qlen
-            dec_attn_mask = (torch.triu(all_ones, 1 + mlen)
+            dec_attn_mask = (torch.triu(all_ones, 1+mlen)
                     + torch.tril(all_ones, -mask_shift_len)).byte()[:, :, None] # -1
         else:
             dec_attn_mask = torch.triu(
-                word_emb.new_ones(qlen, klen), diagonal=1 + mlen).byte()[:,:,None]
-        
+                word_emb.new_ones(qlen, klen), diagonal=1+mlen).byte()[:,:,None]
+        hids = []
 
-        pos_seq = torch.arange(klen - 1, -1, -1.0, device=word_emb.device, 
-                               dtype=word_emb.dtype) # klen
+        pos_seq = torch.arange(klen-1, -1, -1.0, device=word_emb.device, 
+                               dtype=word_emb.dtype)
         if self.clamp_len > 0:
             pos_seq.clamp_(max=self.clamp_len)
         pos_emb = self.pos_emb(pos_seq)
-        
         core_out = self.drop(word_emb)
-        # pos_emb = self.drop(pos_emb)
-
+        pos_emb = self.drop(pos_emb)
+        
+        hids.append(core_out)
         for i, layer in enumerate(self.model_enc_blks):
+            mems_i = None if mems is None else mems[i]
             core_out = layer(core_out, mask, i*(2+2)+1, 7, pos_emb, self.r_w_bias, 
-                self.r_r_bias, dec_attn_mask=dec_attn_mask, mems=mem)
+                self.r_r_bias, dec_attn_mask=dec_attn_mask, mems=mems_i)
+            hids.append(core_out)
 
         core_out = self.drop(core_out)
+        new_mems = self._update_mems(hids, mems, mlen, qlen)
+        return core_out, new_mems    
 
-        return core_out    
+
+    # def _forwardEmb(self, word_emb, mask, mem=None):
+    #     bsz, d_model, qlen = word_emb.size()
+    #     mlen = mem.shape[0] if mem is not None else 0
+    #     klen = mlen + qlen
         
+    #     if not self.training:
+    #         all_ones = word_emb.new_ones(qlen, klen)
+    #         mask_len = klen - self.mem_len
+    #         if mask_len > 0:
+    #             mask_shift_len = qlen - mask_len
+    #         else:
+    #             mask_shift_len = qlen
+    #         dec_attn_mask = (torch.triu(all_ones, 1 + mlen)
+    #                 + torch.tril(all_ones, -mask_shift_len)).byte()[:, :, None] # -1
+    #     else:
+    #         dec_attn_mask = torch.triu(
+    #             word_emb.new_ones(qlen, klen), diagonal=1 + mlen).byte()[:,:,None]
+
+    #     pos_seq = torch.arange(klen-1, -1, -1.0, device=word_emb.device, 
+    #                            dtype=word_emb.dtype)
+    #     if self.clamp_len > 0:
+    #         pos_seq.clamp_(max=self.clamp_len)
+        
+    #     pos_emb = self.pos_emb(pos_seq)
+    #     core_out = self.drop(word_emb)
+    #     # pos_emb = self.drop(pos_emb)
+        
+    #     core_out = self.emb_enc(core_out, mask, 1, 1, pos_emb, self.r_w_bias, 
+    #         self.r_r_bias, dec_attn_mask=dec_attn_mask, mems=mem)
+    #     core_out = self.drop(core_out)
+
+    #     return core_out
+
+    # def _forwardEnc(self, word_emb, mask, mem=None):
+    #     bsz, d_model, qlen = word_emb.size()
+
+    #     mlen = mem.shape[0] if mem is not None else 0
+    #     klen = mlen + qlen
+
+    #     if not self.training: #same_length
+    #         all_ones = word_emb.new_ones(qlen, klen)
+    #         mask_len = klen - self.mem_len
+    #         if mask_len > 0:
+    #             mask_shift_len = qlen - mask_len
+    #         else:
+    #             mask_shift_len = qlen
+    #         dec_attn_mask = (torch.triu(all_ones, 1 + mlen)
+    #                 + torch.tril(all_ones, -mask_shift_len)).byte()[:, :, None] # -1
+    #     else:
+    #         dec_attn_mask = torch.triu(
+    #             word_emb.new_ones(qlen, klen), diagonal=1 + mlen).byte()[:,:,None]
+        
+
+    #     pos_seq = torch.arange(klen - 1, -1, -1.0, device=word_emb.device, 
+    #                            dtype=word_emb.dtype) # klen
+    #     if self.clamp_len > 0:
+    #         pos_seq.clamp_(max=self.clamp_len)
+    #     pos_emb = self.pos_emb(pos_seq)
+        
+    #     core_out = self.drop(word_emb)
+    #     # pos_emb = self.drop(pos_emb)
+
+    #     for i, layer in enumerate(self.model_enc_blks):
+    #         core_out = layer(core_out, mask, i*(2+2)+1, 7, pos_emb, self.r_w_bias, 
+    #             self.r_r_bias, dec_attn_mask=dec_attn_mask, mems=mem)
+
+    #     core_out = self.drop(core_out)
+
+    #     return core_out    
+    
+    # Intra-context
     # def forward(self, Cword, Cchar, Qword, Qchar):
     #     maskC = (torch.ones_like(Cword) * self.pad != Cword).float()
     #     maskQ = (torch.ones_like(Qword) * self.pad != Qword).float()
@@ -232,7 +311,7 @@ class QANetXL(nn.Module):
         Cw, Cc = self.word_emb(Cword), self.char_emb(Cchar)
         Qw, Qc = self.word_emb(Qword), self.char_emb(Qchar)
         #print(Cw)
-        C, Q = self.emb(Cc, Cw, self.LC), self.emb(Qc, Qw, self.LQ)
+        C, Q = self.emb(Cc, Cw), self.emb(Qc, Qw)
         #print(C)
         #print(C.size())
         #print(Q.size())

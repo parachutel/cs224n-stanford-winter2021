@@ -21,12 +21,16 @@ def max_element_idxs(counts):
 
 class VotingEnsemble:
 
-    def __init__(self, exp_names, split='dev', save_name='ensemble', maximize_F1=True):
+    def __init__(self, exp_names, split='dev', save_name='submission', maximize_F1=True):
+        print(f'Generating ensemble for {split}.')
         self.vote_dict = {}
         self.save_path = save_path + split + '_' + save_name + '.csv'
 
         for exp_name in exp_names:
-            csv_paths = glob.glob(save_path + exp_name + '/*.csv')
+            if split == 'dev':
+                csv_paths = glob.glob(save_path + exp_name + '/val*.csv')
+            else:
+                csv_paths = glob.glob(save_path + exp_name + '/test*.csv')
             for csv_path in csv_paths:
                 if csv_path[-5] != ')':
                     continue
@@ -68,9 +72,13 @@ class VotingEnsemble:
         
 
 if __name__ == '__main__':
-    exp_names = ['qanet_D=128_encblk=7_head=8_bs=24_run-04-dev-ensemble',
-                 'qanet_D=96_encblk=5_head=6_bs=32_run-01-dev-F1-67.98-EM 64.27',
-                 'qanet_D=128_encblk=7_head=8_bs=24_run-01-dev-F1-70.38-EM-66.81',
-                 'qanet_D=128_encblk=7_head=8_bs=24_run-01-dev-ensemble']
-    voting_ensemble = VotingEnsemble(exp_names)
+    exp_names = ['qanet_D=128_encblk=7_head=8_bs=24_run-04-dev-ensemble-course', # qanet-large [best]
+                 'qanet_D=96_encblk=5_head=6_bs=64_run-01-dev-emsemble-course', # qanet-mid
+                 'qanet_D=128_encblk=7_head=8_bs=24_run-01-dev-ensemble-myazaure', # qanet-large
+                 'bidaf_D=100_charEmb=True_fusion=True_bs=64_run-01-dev-ensemble-course', # bidaf+char_emb+fusion
+                #  'qanet_D=128_encblk=7_head=8_bs=24_run-02-dev-ensemble-myazure', # qanet-large
+                #  'qanet_D=96_encblk=5_head=6_bs=32_run-01-dev-F1-67.98-EM-64.27-course', # qanet-mid best
+                #  'qanet_D=128_encblk=7_head=8_bs=24_run-01-dev-F1-70.38-EM-66.81-course', # qanet-large 2nd best
+                ]
+    voting_ensemble = VotingEnsemble(exp_names, split='dev')
     voting_ensemble.ensemble()
