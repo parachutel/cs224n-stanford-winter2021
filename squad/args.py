@@ -230,11 +230,11 @@ def get_args():
                         help='Number of layers of encoder blocks in QANet.')
     parser.add_argument('--n_head',
                         type=int,
-                        default=4,
+                        default=8,
                         help='Number of attention heads in QANet.')
     parser.add_argument('--d_model',
                         type=int,
-                        default=96,
+                        default=128,
                         help='Dimension of connectors in QANet.')
     parser.add_argument('--qanet_dropout',
                         type=float,

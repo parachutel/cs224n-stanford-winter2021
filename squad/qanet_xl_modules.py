@@ -5,7 +5,8 @@ import torch.nn as nn
 import torch.nn.functional as F
 
 class RelMultiHeadAttn(nn.Module):
-    def __init__(self, n_head, d_model, d_head, dropout, dropatt=0, pre_lnorm = True):
+    def __init__(self, n_head, d_model, d_head, dropout, 
+                 dropatt=0.1, pre_lnorm=True):
         super().__init__()
 
         self.n_head = n_head
@@ -363,7 +364,7 @@ class Encoder(nn.Module):
         self.convs = nn.ModuleList([DepthwiseSeperableConv(d_model, d_model, k) for _ in range(num_conv)])
         self.conv_norms = nn.ModuleList([nn.LayerNorm(d_model) for _ in range(num_conv)])
         
-        self.att = RelPartialLearnableMultiHeadAttn(n_head, d_model, d_head, dropout, pre_lnorm = True)
+        self.att = RelPartialLearnableMultiHeadAttn(n_head, d_model, d_head, dropout, pre_lnorm=True)
         #self.att = SelfAttention(d_model, n_head, dropout = dropout)
         self.norm_1 = nn.LayerNorm(d_model)
         self.norm_2 = nn.LayerNorm(d_model)        

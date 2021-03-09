@@ -51,9 +51,9 @@ class QANetXL(nn.Module):
         self._create_parameters()
 
     def _create_parameters(self):
-            self.pos_emb = layers.PositionalEmbedding(self.d_model)
-            self.r_w_bias = nn.Parameter(torch.Tensor(self.num_head, self.d_head))
-            self.r_r_bias = nn.Parameter(torch.Tensor(self.num_head, self.d_head))        
+        self.pos_emb = layers.PositionalEmbedding(self.d_model)
+        self.r_w_bias = nn.Parameter(torch.Tensor(self.num_head, self.d_head))
+        self.r_r_bias = nn.Parameter(torch.Tensor(self.num_head, self.d_head))        
 
     def init_mems(self, n_layers):
         if self.mem_len > 0:
@@ -183,7 +183,9 @@ class QANetXL(nn.Module):
         M3_collection = []
 
         memsC = self.init_mems(2)
-        memsA = self.init_mems(8)
+        mems0 = self.init_mems(8)
+        mems1 = self.init_mems(8)
+        mems2 = self.init_mems(8)
         
         for i_seg in range(n_segments):
 
@@ -200,11 +202,11 @@ class QANetXL(nn.Module):
             M0 = self.cq_resizer(X)
             M0 = F.dropout(M0, p=self.dropout, training=self.training)
 
-            M1, memsA = self._forwardEnc(M0, maskC_seg, mems=memsA)
+            M1, mems0 = self._forwardEnc(M0, maskC_seg, mems=mems0)
             M1_collection.append(M1)
-            M2, memsA = self._forwardEnc(M1, maskC_seg, mems=memsA)
+            M2, mems1 = self._forwardEnc(M1, maskC_seg, mems=mems1)
             M2_collection.append(M2)
-            M3, memsA = self._forwardEnc(M2, maskC_seg, mems=memsA)
+            M3, mems2 = self._forwardEnc(M2, maskC_seg, mems=mems2)
             M3_collection.append(M3)
         
         M1 = torch.cat(M1_collection, dim=-1)

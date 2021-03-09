@@ -493,7 +493,7 @@ def get_save_dir(args, training, id_max=100):
             'bs={}'.format(args.batch_size),
             'run',
         ])
-    if name == 'qanetxl':
+    elif name == 'qanetxl':
         name = '_'.join([
             'qanetxl',
             'D={}'.format(args.d_model),
