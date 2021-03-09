@@ -8,7 +8,8 @@ class QANetXL(nn.Module):
 
     def __init__(self, word_vectors, char_vectors,
                  d_model, d_head, mem_len=80, same_length=False, clamp_len=-1, 
-                 train_cemb=False, pad=0, dropout=0.1, num_head=8):
+                 train_cemb=False, pad=0, dropout=0.1, num_head=8,
+                 n_encoder_blocks=7):
         super().__init__()
         if train_cemb:
             self.char_emb = nn.Embedding.from_pretrained(char_vectors, freeze=False)
@@ -23,6 +24,7 @@ class QANetXL(nn.Module):
         self.d_head = d_head
         self.d_model = d_model
         self.num_head = num_head
+        self.n_encoder_blocks = n_encoder_blocks
         self.same_length = same_length
         self.clamp_len = clamp_len
         self.ext_len = 0
@@ -30,20 +32,19 @@ class QANetXL(nn.Module):
         wemb_dim = word_vectors.size()[1]
         cemb_dim = char_vectors.size()[1]
 
-
         #Layer Declarations
         self.emb = layers.Embedding(wemb_dim, cemb_dim, d_model)
         self.qanet_emb_enc = qanet.EncoderBlock(
             conv_num=4, ch_num=d_model, k=7, n_head=num_head)
         self.emb_enc = layers.Encoder(4, num_head, d_model, d_head, 
-            d_inner = d_model * 4, k=7, dropout=0.1) #Hard coded
+            d_inner=d_model * 4, k=7, dropout=0.1) #Hard coded
         self.cq_att = layers.CQAttention(d_model=d_model)
         self.cq_resizer = layers.Initialized_Conv1d(d_model * 4, d_model) 
         #Foward layer to reduce dimension of cq_att output back to d_dim
         self.model_enc_blks = nn.ModuleList([
             layers.Encoder(2, num_head, d_model, d_head, 
-                d_inner = d_model * 4, k=5, dropout=0.1) 
-            for _ in range(7)
+                d_inner=d_model * 4, k=5, dropout=0.1) 
+            for _ in range(self.n_encoder_blocks)
         ])
         self.out = layers.QAOutput(d_model)
         self.drop = nn.Dropout(dropout)
@@ -94,20 +95,22 @@ class QANetXL(nn.Module):
         mlen = mems[0].size(0) if mems is not None else 0
         klen = mlen + qlen
         
-        if not self.training:
-            all_ones = word_emb.new_ones(qlen, klen)
-            mask_len = klen - self.mem_len
-            if mask_len > 0:
-                mask_shift_len = qlen - mask_len
-            else:
-                mask_shift_len = qlen
-            dec_attn_mask = (torch.triu(all_ones, 1 + mlen)
-                    + torch.tril(all_ones, -mask_shift_len)).byte()[:, :, None] # -1
-        else:
-            dec_attn_mask = torch.triu(
+        # if not self.training:
+        #     all_ones = word_emb.new_ones(qlen, klen)
+        #     mask_len = klen - self.mem_len
+        #     if mask_len > 0:
+        #         mask_shift_len = qlen - mask_len
+        #     else:
+        #         mask_shift_len = qlen
+        #     dec_attn_mask = (torch.triu(all_ones, 1 + mlen)
+        #             + torch.tril(all_ones, -mask_shift_len)).byte()[:, :, None] # -1
+        # else:
+        #     dec_attn_mask = torch.triu(
+        #         word_emb.new_ones(qlen, klen), diagonal=1+mlen).byte()[:,:,None]
+        
+        dec_attn_mask = torch.triu(
                 word_emb.new_ones(qlen, klen), diagonal=1+mlen).byte()[:,:,None]
 
-        hids = []
         pos_seq = torch.arange(klen-1, -1, -1.0, device=word_emb.device, 
                                    dtype=word_emb.dtype)
         if self.clamp_len > 0:
@@ -116,6 +119,7 @@ class QANetXL(nn.Module):
         core_out = self.drop(word_emb)
         pos_emb = self.drop(pos_emb)
         
+        hids = []
         hids.append(core_out)
         mems_i = None if mems is None else mems[1]
         core_out = self.emb_enc(core_out, mask, 1, 1, pos_emb, self.r_w_bias, 
@@ -133,19 +137,21 @@ class QANetXL(nn.Module):
         mlen = mems[0].size(0) if mems is not None else 0
         klen = mlen + qlen
 
-        if not self.training: #same_length
-            all_ones = word_emb.new_ones(qlen, klen)
-            mask_len = klen - self.mem_len
-            if mask_len > 0:
-                mask_shift_len = qlen - mask_len
-            else:
-                mask_shift_len = qlen
-            dec_attn_mask = (torch.triu(all_ones, 1+mlen)
-                    + torch.tril(all_ones, -mask_shift_len)).byte()[:, :, None] # -1
-        else:
-            dec_attn_mask = torch.triu(
+        # if not self.training: #same_length
+        #     all_ones = word_emb.new_ones(qlen, klen)
+        #     mask_len = klen - self.mem_len
+        #     if mask_len > 0:
+        #         mask_shift_len = qlen - mask_len
+        #     else:
+        #         mask_shift_len = qlen
+        #     dec_attn_mask = (torch.triu(all_ones, 1+mlen)
+        #             + torch.tril(all_ones, -mask_shift_len)).byte()[:, :, None] # -1
+        # else:
+        #     dec_attn_mask = torch.triu(
+        #         word_emb.new_ones(qlen, klen), diagonal=1+mlen).byte()[:,:,None]
+
+        dec_attn_mask = torch.triu(
                 word_emb.new_ones(qlen, klen), diagonal=1+mlen).byte()[:,:,None]
-        hids = []
 
         pos_seq = torch.arange(klen-1, -1, -1.0, device=word_emb.device, 
                                dtype=word_emb.dtype)
@@ -155,6 +161,7 @@ class QANetXL(nn.Module):
         core_out = self.drop(word_emb)
         pos_emb = self.drop(pos_emb)
         
+        hids = []
         hids.append(core_out)
         for i, layer in enumerate(self.model_enc_blks):
             mems_i = None if mems is None else mems[i]
@@ -182,10 +189,10 @@ class QANetXL(nn.Module):
         M2_collection = []
         M3_collection = []
 
-        memsC = self.init_mems(2)
-        mems0 = self.init_mems(8)
-        mems1 = self.init_mems(8)
-        mems2 = self.init_mems(8)
+        memsC = self.init_mems(n_layers=1 + 1)
+        mems0 = self.init_mems(n_layers=self.n_encoder_blocks + 1)
+        mems1 = self.init_mems(n_layers=self.n_encoder_blocks + 1)
+        mems2 = self.init_mems(n_layers=self.n_encoder_blocks + 1)
         
         for i_seg in range(n_segments):
 

@@ -65,7 +65,8 @@ def main(args):
                       n_head=args.n_head)
     elif args.name == 'qanetxl':
         model = QANetXL(word_vectors=word_vectors, 
-                        char_vectors=char_vectors, 
+                        char_vectors=char_vectors,
+                        n_encoder_blocks=args.n_encoder_blocks,
                         mem_len=args.mem_len,
                         d_model=args.d_model, 
                         d_head=args.d_head, 

@@ -167,7 +167,7 @@ def get_args():
                         help='Base directory for saving information.')
     parser.add_argument('--batch_size',
                         type=int,
-                        default=64,
+                        default=24,
                         help='Batch size per GPU. Scales automatically when \
                               multiple GPUs are available.')
     parser.add_argument('--use_squad_v2',
