@@ -140,7 +140,8 @@ class RelPartialLearnableMultiHeadAttn(RelMultiHeadAttn):
         if mems is not None:
             mlen = mems.shape[0]
             # mem is guaranteed to be non-padded values
-            mask = torch.cat([torch.ones(bsz, qlen, mlen), mask], dim=-1) # (bs, seg_len, aug_len)
+            mask = torch.cat([torch.ones(bsz, qlen, mlen,
+                device=mask.device), mask], dim=-1) # (bs, seg_len, aug_len)
 
         # mask.shape = (bs, seg_len, aug_len)
         mask = mask.unsqueeze(-1) # (bs, seg_len, aug_len, 1)
