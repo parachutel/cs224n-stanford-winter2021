@@ -83,15 +83,15 @@ class RelPartialLearnableMultiHeadAttn(RelMultiHeadAttn):
         qlen, rlen, bsz = w.size(0), r.size(0), w.size(1)
 
         if mems is not None:
-            cat = torch.cat([mems, w], 0) # (mem_len + seq_len, bs, d_model)
+            cat = torch.cat([mems, w], 0) # (aug_len, bs, d_model)
             if self.pre_lnorm:
                 w_heads = self.qkv_net(self.layer_norm(cat))
             else:
-                w_heads = self.qkv_net(cat) # (mem_len + seq_len, bs, 3 * n_head * d_head)
+                w_heads = self.qkv_net(cat) # (aug_len, bs, 3 * n_head * d_head)
             r_head_k = self.r_net(r)
 
             w_head_q, w_head_k, w_head_v = torch.chunk(w_heads, 3, dim=-1) 
-            # (mem_len + seq_len, bs, n_head * d_head)
+            # (aug_len, bs, n_head * d_head)
             w_head_q = w_head_q[-qlen:]
             # (seq_len, bs, n_head * d_head)
         else:
@@ -119,7 +119,7 @@ class RelPartialLearnableMultiHeadAttn(RelMultiHeadAttn):
 
         rr_head_q = w_head_q + r_r_bias
         BD = torch.einsum('ibnd,jnd->ijbn', (rr_head_q, r_head_k))              # qlen x klen x bsz x n_head
-        BD = self._rel_shift(BD)
+        # BD = self._rel_shift(BD) # ?
 
         # print('rw_head_q', rw_head_q.shape) # (qlen, bs, n_head, d_head)
         # print('w_head_k', w_head_k.shape) # (klen, bs, n_head, d_head)
@@ -128,27 +128,38 @@ class RelPartialLearnableMultiHeadAttn(RelMultiHeadAttn):
         # print('qanet_xl_modules AC BD', AC.shape, BD.shape) 
         # AC (qken, klen, n_head, d_head)
         # BD (qken, rlen, n_head, d_head)
-        # requires klen = rlen
+        # requires klen = rlen = aug_len
 
         # [qlen x klen x bsz x n_head]
         attn_score = AC + BD
         attn_score.mul_(self.scale)
 
-        sizes = mask.size()
-        mask = mask.unsqueeze(-1).unsqueeze(-1)
-        mask = mask.permute(0, 2, 3, 1)
-        attn_score = attn_score.permute(2, 3, 1, 0)
-        attn_score = mask_logits(attn_score, mask)
-        attn_score = attn_score.permute(3, 2, 0, 1)
-                
+        # mask.shape = (bs, seg_len)
+        mask = mask.unsqueeze(-1) # (bs, seg_len, 1)
+        mask = mask.expand(-1, -1, qlen) # (bs, seg_len, seg_len)
+        if mems is not None:
+            mlen = mems.shape[0]
+            # mem is guaranteed to be non-padded values
+            mask = torch.cat([torch.ones(bsz, qlen, mlen), mask], dim=-1) # (bs, seg_len, aug_len)
+
+        # mask.shape = (bs, seg_len, aug_len)
+        mask = mask.unsqueeze(-1) # (bs, seg_len, aug_len, 1)
+        mask = mask.permute(0, 3, 2, 1) # (bs, 1, aug_len, seg_len)
+        attn_score = attn_score.permute(2, 3, 1, 0) # (bs, n_head, aug_len, seg_len)
+        attn_score = mask_logits(attn_score, mask)  # (bs, n_head, aug_len, seg_len)
+        attn_score = attn_score.permute(3, 2, 0, 1) # (seg_len, aug_len, bs, n_head)
+
         #### compute attention probability
-        if attn_mask is not None and attn_mask.any().item():
-            if attn_mask.dim() == 2:
-                attn_score = attn_score.float().masked_fill(
-                    attn_mask[None,:,:,None], -float('inf')).type_as(attn_score)
-            elif attn_mask.dim() == 3:
-                attn_score = attn_score.float().masked_fill(
-                    attn_mask[:,:,:,None], -float('inf')).type_as(attn_score)
+        # attn_mask = (seg_len, aug_len, 1) for _forwardEnc
+        # if attn_mask is not None and attn_mask.any().item():
+        #     if attn_mask.dim() == 2:
+        #         attn_score = attn_score.float().masked_fill(
+        #             attn_mask[None,:,:,None], -float('inf')).type_as(attn_score)
+        #     elif attn_mask.dim() == 3:
+        #         # attn_mask[:,:,:,None].shape = (seg_len, aug_len, 1, 1)
+        #         attn_score = attn_score.float().masked_fill(
+        #             attn_mask[:,:,:,None], -float('inf')).type_as(attn_score)
+
 
         # [qlen x klen x bsz x n_head]
         attn_prob = F.softmax(attn_score, dim=1)
@@ -181,7 +192,7 @@ class HighwayEncoder(nn.Module):
     Edits: An dropout layer with p=0.1 was added
 
     Encode an input sequence using a highway network.
-!    Based on the paper:
+    Based on the paper:
     "Highway Networks"
     by Rupesh Kumar Srivastava, Klaus Greff, Jürgen Schmidhuber
     (https://arxiv.org/abs/1505.00387).
@@ -393,7 +404,7 @@ class Encoder(nn.Module):
         reference here: https://arxiv.org/pdf/1603.09382.pdf 
         """
         total_layers = (self.num_conv + 1) * blks
-        bsz, d_model, seq_len = x.size()
+        # bsz, d_model, seq_len = x.size()
         
         out = x
         dropout = self.dropout

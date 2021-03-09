@@ -107,7 +107,7 @@ def get_args():
     # Train
     parser.add_argument('--eval_steps',
                         type=int,
-                        default=20000,
+                        default=10000,
                         help='Number of steps between successive evaluations.')
     parser.add_argument('--num_epochs',
                         type=int,

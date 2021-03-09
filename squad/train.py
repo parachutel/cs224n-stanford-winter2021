@@ -157,7 +157,8 @@ def main(args):
 
                 # Forward
                 if args.name == 'qanetxl':
-                    log_p1, log_p2, mems = model(cw_idxs, cc_idxs, qw_idxs, qc_idxs, *mems)
+                    # log_p1, log_p2, mems = model(cw_idxs, cc_idxs, qw_idxs, qc_idxs, *mems)
+                    log_p1, log_p2 = model(cw_idxs, cc_idxs, qw_idxs, qc_idxs, None)
                 else:
                     log_p1, log_p2 = model(cw_idxs, cc_idxs, qw_idxs, qc_idxs)
 
@@ -235,7 +236,8 @@ def evaluate(model, data_loader, device, eval_file, max_len, use_squad_v2, algo_
 
             # Forward
             if args.name == 'qanetxl':
-                log_p1, log_p2, mems = model(cw_idxs, cc_idxs, qw_idxs, qc_idxs, *mems)
+                # log_p1, log_p2, mems = model(cw_idxs, cc_idxs, qw_idxs, qc_idxs, *mems)
+                log_p1, log_p2 = model(cw_idxs, cc_idxs, qw_idxs, qc_idxs, None)
             else:
                 log_p1, log_p2 = model(cw_idxs, cc_idxs, qw_idxs, qc_idxs)
 
