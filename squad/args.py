@@ -171,7 +171,7 @@ def get_args():
                         help='Base directory for saving information.')
     parser.add_argument('--batch_size',
                         type=int,
-                        default=64,
+                        default=24,
                         help='Batch size per GPU. Scales automatically when \
                               multiple GPUs are available.')
     parser.add_argument('--use_squad_v2',
@@ -234,11 +234,11 @@ def get_args():
                         help='Number of layers of encoder blocks in QANet.')
     parser.add_argument('--n_head',
                         type=int,
-                        default=4,
+                        default=8,
                         help='Number of attention heads in QANet.')
     parser.add_argument('--d_model',
                         type=int,
-                        default=96,
+                        default=128,
                         help='Dimension of connectors in QANet.')
     parser.add_argument('--qanet_dropout',
                         type=float,
@@ -258,7 +258,7 @@ def get_args():
     ############################################################################
     parser.add_argument('--mem_len',
                         type=int,
-                        default=128,
+                        default=256,
                         help='Length of memory segments')
     parser.add_argument('--d_head',
                         type=int,
