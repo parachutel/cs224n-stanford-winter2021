@@ -95,20 +95,17 @@ class QANetXL(nn.Module):
         mlen = mems[0].size(0) if mems is not None else 0
         klen = mlen + qlen
         
-        # if not self.training:
-        #     all_ones = word_emb.new_ones(qlen, klen)
-        #     mask_len = klen - self.mem_len
-        #     if mask_len > 0:
-        #         mask_shift_len = qlen - mask_len
-        #     else:
-        #         mask_shift_len = qlen
-        #     dec_attn_mask = (torch.triu(all_ones, 1 + mlen)
-        #             + torch.tril(all_ones, -mask_shift_len)).byte()[:, :, None] # -1
-        # else:
-        #     dec_attn_mask = torch.triu(
-        #         word_emb.new_ones(qlen, klen), diagonal=1+mlen).byte()[:,:,None]
-        
-        dec_attn_mask = torch.triu(
+        if not self.training:
+            all_ones = word_emb.new_ones(qlen, klen)
+            mask_len = klen - self.mem_len
+            if mask_len > 0:
+                mask_shift_len = qlen - mask_len
+            else:
+                mask_shift_len = qlen
+            dec_attn_mask = (torch.triu(all_ones, 1 + mlen)
+                    + torch.tril(all_ones, -mask_shift_len)).byte()[:, :, None] # -1
+        else:
+            dec_attn_mask = torch.triu(
                 word_emb.new_ones(qlen, klen), diagonal=1+mlen).byte()[:,:,None]
 
         pos_seq = torch.arange(klen-1, -1, -1.0, device=word_emb.device, 
@@ -117,7 +114,7 @@ class QANetXL(nn.Module):
             pos_seq.clamp_(max=self.clamp_len)
         pos_emb = self.pos_emb(pos_seq)
         core_out = self.drop(word_emb)
-        pos_emb = self.drop(pos_emb)
+        # pos_emb = self.drop(pos_emb)
         
         hids = []
         hids.append(core_out)
@@ -137,20 +134,17 @@ class QANetXL(nn.Module):
         mlen = mems[0].size(0) if mems is not None else 0
         klen = mlen + qlen
 
-        # if not self.training: #same_length
-        #     all_ones = word_emb.new_ones(qlen, klen)
-        #     mask_len = klen - self.mem_len
-        #     if mask_len > 0:
-        #         mask_shift_len = qlen - mask_len
-        #     else:
-        #         mask_shift_len = qlen
-        #     dec_attn_mask = (torch.triu(all_ones, 1+mlen)
-        #             + torch.tril(all_ones, -mask_shift_len)).byte()[:, :, None] # -1
-        # else:
-        #     dec_attn_mask = torch.triu(
-        #         word_emb.new_ones(qlen, klen), diagonal=1+mlen).byte()[:,:,None]
-
-        dec_attn_mask = torch.triu(
+        if not self.training: #same_length
+            all_ones = word_emb.new_ones(qlen, klen)
+            mask_len = klen - self.mem_len
+            if mask_len > 0:
+                mask_shift_len = qlen - mask_len
+            else:
+                mask_shift_len = qlen
+            dec_attn_mask = (torch.triu(all_ones, 1+mlen)
+                    + torch.tril(all_ones, -mask_shift_len)).byte()[:, :, None] # -1
+        else:
+            dec_attn_mask = torch.triu(
                 word_emb.new_ones(qlen, klen), diagonal=1+mlen).byte()[:,:,None]
 
         pos_seq = torch.arange(klen-1, -1, -1.0, device=word_emb.device, 
@@ -159,7 +153,7 @@ class QANetXL(nn.Module):
             pos_seq.clamp_(max=self.clamp_len)
         pos_emb = self.pos_emb(pos_seq)
         core_out = self.drop(word_emb)
-        pos_emb = self.drop(pos_emb)
+        # pos_emb = self.drop(pos_emb)
         
         hids = []
         hids.append(core_out)
