@@ -27,18 +27,19 @@ def analysis(gold_dict, pred_dict):
             plot_y_list.append(np.mean(count_dict[l]))
 
     ax.bar(plot_x_list, plot_bar_list, color='tab:blue')
+    ax.set_xlabel('Ground Truth Length')
     ax.set_ylabel('Ground Truth Length Freq.', color='tab:blue')
     ax.tick_params(axis='y', labelcolor='tab:blue')
-
+    
     ax2 = ax.twinx()
     ax2.plot([0, 25], [0, 25], linestyle='dashed', color='tab:red', label='Accuracy Reference')
     ax2.plot(plot_x_list, plot_y_list, color='tab:red')
     ax2.set_xlim(-0.5, 25)
     ax2.set_ylim(0, 25)
-    ax2.set_xlabel('Ground Truth Length')
     ax2.set_ylabel('Mean Prediction Length', color='tab:red')
     ax2.tick_params(axis='y', labelcolor='tab:red')
     # ax2.legend()
 
+    fig.tight_layout()
     fig.savefig('./length_analysis.png')
     print('Length analysis saved')
