@@ -36,9 +36,7 @@ def analysis(gold_dict, pred_dict):
     ax.set_ylim(0, 25)
     ax.set_xlabel('Ground Truth Length')
     ax.set_ylabel('Mean Prediction Length')
-    ax.set_aspect('equal', 'box')
-
-    
+    # ax.set_aspect('equal', 'box')
 
     plt.legend()
     fig.savefig('./length_analysis.png')
