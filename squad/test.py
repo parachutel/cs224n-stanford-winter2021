@@ -136,6 +136,8 @@ def main(args):
                                                           starts.tolist(),
                                                           ends.tolist(),
                                                           args.use_squad_v2)
+
+                # analysis(gold_dict, idx2pred)
                 pred_dict.update(idx2pred)
                 sub_dict.update(uuid2pred)
 
