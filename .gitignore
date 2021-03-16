@@ -12,6 +12,7 @@ __pycache__/
 *.npy
 *.pickle
 *.zip
+*.png
 *.docx
 datasets/
 dataset/

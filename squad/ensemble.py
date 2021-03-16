@@ -76,9 +76,9 @@ if __name__ == '__main__':
                  'qanet_D=96_encblk=5_head=6_bs=64_run-01-dev-emsemble-course', # qanet-mid
                  'qanet_D=128_encblk=7_head=8_bs=24_run-01-dev-ensemble-myazaure', # qanet-large
                  'bidaf_D=100_charEmb=True_fusion=True_bs=64_run-01-dev-ensemble-course', # bidaf+char_emb+fusion
-                #  'qanet_D=128_encblk=7_head=8_bs=24_run-02-dev-ensemble-myazure', # qanet-large
-                #  'qanet_D=96_encblk=5_head=6_bs=32_run-01-dev-F1-67.98-EM-64.27-course', # qanet-mid best
-                #  'qanet_D=128_encblk=7_head=8_bs=24_run-01-dev-F1-70.38-EM-66.81-course', # qanet-large 2nd best
+                 'qanet_D=128_encblk=7_head=8_bs=24_run-02-dev-ensemble-myazure', # qanet-large
+                 'qanet_D=96_encblk=5_head=6_bs=32_run-01-dev-F1-67.98-EM-64.27-course', # qanet-mid best
+                 'qanet_D=128_encblk=7_head=8_bs=24_run-01-dev-F1-70.38-EM-66.81-course', # qanet-large 2nd best
                 ]
     voting_ensemble = VotingEnsemble(exp_names, split='dev')
     voting_ensemble.ensemble()

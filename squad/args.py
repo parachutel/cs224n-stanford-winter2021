@@ -149,6 +149,10 @@ def get_args():
                         type=lambda s: s.lower().startswith('t'),
                         default=False,
                         help='Whether to use ensemble mode in test.')
+    parser.add_argument('--run_analysis',
+                        type=lambda s: s.lower().startswith('t'),
+                        default=False,
+                        help='Whether to run analysis in test.')
 
         
     # Meta

@@ -26,6 +26,7 @@ from tensorboardX import SummaryWriter
 from tqdm import tqdm
 from ujson import load as json_load
 from util import collate_fn, SQuAD
+from analysis import analysis
 
 import glob
 
@@ -141,6 +142,7 @@ def main(args):
         # Log results (except for test set, since it does not come with labels)
         if args.split != 'test':
             results = util.eval_dicts(gold_dict, pred_dict, args.use_squad_v2)
+
             results_list = [('NLL', nll_meter.avg),
                             ('F1', results['F1']),
                             ('EM', results['EM'])]
@@ -151,6 +153,9 @@ def main(args):
             # Log to console
             results_str = ', '.join(f'{k}: {v:05.2f}' for k, v in results.items())
             log.info(f'{args.split.title()} {results_str}')
+
+            if args.run_analysis:
+                analysis(gold_dict, pred_dict)
 
             # Log to TensorBoard
             tbx = SummaryWriter(args.save_dir)
