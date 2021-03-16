@@ -5,4 +5,4 @@ def analysis(gold_dict, pred_dict):
         ground_truth = gold_dict[key]['answers'][0]
         prediction = value
         plt.scatter(len(ground_truth), len(prediction), color='red')
-plt.save('length_analysis.png')
+    plt.savefig('length_analysis.png')
