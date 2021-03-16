@@ -27,7 +27,7 @@ def analysis(gold_dict, pred_dict):
             plot_y_list.append(np.mean(count_dict[l]))
 
     ax.bar(plot_x_list, plot_bar_list, color='tab:blue')
-    ax.set_ylabel('Ground Truth Length Freq.')
+    ax.set_ylabel('Ground Truth Length Freq.', color='tab:blue')
     ax.tick_params(axis='y', labelcolor='tab:blue')
 
     ax2 = ax.twinx()
@@ -36,7 +36,8 @@ def analysis(gold_dict, pred_dict):
     ax2.set_xlim(-0.5, 25)
     ax2.set_ylim(0, 25)
     ax2.set_xlabel('Ground Truth Length')
-    ax2.set_ylabel('Mean Prediction Length')
+    ax2.set_ylabel('Mean Prediction Length', color='red')
     ax2.tick_params(axis='y', labelcolor='red')
     ax2.legend()
+    
     fig.savefig('./length_analysis.png')
