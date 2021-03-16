@@ -38,6 +38,7 @@ def analysis(gold_dict, pred_dict):
     ax2.set_xlabel('Ground Truth Length')
     ax2.set_ylabel('Mean Prediction Length', color='red')
     ax2.tick_params(axis='y', labelcolor='red')
-    ax2.legend()
-    
+    # ax2.legend()
+
     fig.savefig('./length_analysis.png')
+    print('Length analysis saved')
