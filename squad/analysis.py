@@ -41,5 +41,5 @@ def analysis(gold_dict, pred_dict):
     # ax2.legend()
 
     fig.tight_layout()
-    fig.savefig('./length_analysis.png')
+    fig.savefig('./new_length_analysis.png')
     print('Length analysis saved')
