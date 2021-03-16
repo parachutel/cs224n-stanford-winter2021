@@ -3,7 +3,7 @@ import numpy as np
 
 def analysis(gold_dict, pred_dict):
     fig, ax = plt.subplots()
-    count_mat = np.zeros((26, 26))
+    count_dict = dict([(i, []) for i in range(26)])
     for key, value in pred_dict.items():
         if len(gold_dict[key]['answers']) > 0:
             ground_truth = gold_dict[key]['answers'][0].split(' ')
@@ -14,15 +14,17 @@ def analysis(gold_dict, pred_dict):
         else:
             prediction = ''
         
-        if len(ground_truth) <= 25 and len(ground_truth) > 0 \
-            and len(prediction) <= 25 and len(prediction) > 0:
-            count_mat[len(ground_truth), len(prediction)] += 1
+        if len(ground_truth) <= 25:
+            count_dict[len(ground_truth)].append(len(prediction))
 
-    # count_mat = np.flipud(count_mat)
-    plt.imshow(count_mat)
-    plt.gca().invert_yaxis()
-    plt.colorbar()
-    # ax.plot([0.5, 25], [0.5, 25], color='black')
+    plot_x_list = []
+    plot_y_list = []
+    for l in sorted(count_dict):
+        if len(count_dict[l] > 0):
+            plot_x_list.append[l]
+            plot_y_list.append(np.mean(count_dict[l]))
+    ax.plot([0, 25], [0, 25], color='black')
+    ax.plot(plot_x_list, plot_y_list, color='red')
     ax.set_xlim(0, 25)
     ax.set_ylim(0, 25)
     ax.set_xlabel('Ground Truth Length')
