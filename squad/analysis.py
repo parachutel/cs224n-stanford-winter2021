@@ -14,14 +14,15 @@ def analysis(gold_dict, pred_dict):
         else:
             prediction = ''
         
-        if len(ground_truth) <= 25 and len(prediction) <= 25:
+        if len(ground_truth) <= 25 and len(ground_truth) > 0 \
+            and len(prediction) <= 25 and len(prediction) > 0:
             count_mat[len(ground_truth), len(prediction)] += 1
 
-    count_mat = np.flipud(count_mat)
+    # count_mat = np.flipud(count_mat)
     plt.imshow(count_mat)
     plt.gca().invert_yaxis()
     plt.colorbar()
-    ax.plot([0, 25], [0, 25], color='black')
+    # ax.plot([0.5, 25], [0.5, 25], color='black')
     ax.set_xlim(0, 25)
     ax.set_ylim(0, 25)
     ax.set_xlabel('Ground Truth Length')
