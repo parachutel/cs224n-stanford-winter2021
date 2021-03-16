@@ -26,17 +26,17 @@ def analysis(gold_dict, pred_dict):
             plot_x_list.append(l)
             plot_y_list.append(np.mean(count_dict[l]))
 
+    ax.bar(plot_x_list, plot_bar_list, color='tab:blue')
+    ax.set_ylabel('Ground Truth Length Freq.')
+    ax.tick_params(axis='y', labelcolor='tab:blue')
+
     ax2 = ax.twinx()
-    ax2.set_ylabel('Ground Truth Length Freq.')  # we already handled the x-label with ax1
-    ax2.bar(plot_x_list, plot_bar_list)
-
-    ax.plot([0, 25], [0, 25], linestyle='dashed', color='black', label='Accuracy Reference')
-    ax.plot(plot_x_list, plot_y_list, color='red')
-    ax.set_xlim(0, 25)
-    ax.set_ylim(0, 25)
-    ax.set_xlabel('Ground Truth Length')
-    ax.set_ylabel('Mean Prediction Length')
-    # ax.set_aspect('equal', 'box')
-
-    plt.legend()
+    ax2.plot([0, 25], [0, 25], linestyle='dashed', color='red', label='Accuracy Reference')
+    ax2.plot(plot_x_list, plot_y_list, color='red')
+    ax2.set_xlim(-0.5, 25)
+    ax2.set_ylim(0, 25)
+    ax2.set_xlabel('Ground Truth Length')
+    ax2.set_ylabel('Mean Prediction Length')
+    ax2.tick_params(axis='y', labelcolor='red')
+    ax2.legend()
     fig.savefig('./length_analysis.png')
