@@ -20,7 +20,7 @@ def analysis(gold_dict, pred_dict):
     plot_x_list = []
     plot_y_list = []
     for l in sorted(count_dict):
-        if len(count_dict[l] > 0):
+        if len(count_dict[l]) > 0:
             plot_x_list.append[l]
             plot_y_list.append(np.mean(count_dict[l]))
     ax.plot([0, 25], [0, 25], color='black')
