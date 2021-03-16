@@ -8,4 +8,4 @@ def analysis(gold_dict, pred_dict):
             ground_truth = ''
         prediction = value
         plt.scatter(len(ground_truth), len(prediction), color='red')
-    plt.savefig('length_analysis.png')
+    plt.savefig('./length_analysis.png')
