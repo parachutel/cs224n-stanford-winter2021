@@ -1,2 +1,1 @@
-# cs224n
-- 
+# Stanford CS224N Winter 2021
